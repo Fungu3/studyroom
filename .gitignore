@@ -6,6 +6,10 @@ target/
 !**/src/main/**/target/
 !**/src/test/**/target/
 
+# Runtime logs (ignored)
+/backend.out.log
+/backend.err.log
+
 ### STS ###
 .apt_generated
 .classpath
