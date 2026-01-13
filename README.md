@@ -1,23 +1,54 @@
-README.md 内容（最简版）
+# Studyroom
+
 项目：Studyroom 共享自习室（协作复习房）
-功能：
 
-房间：按科目/主题创建自习室
+## 功能（当前可演示）
+- 房间：创建 / 列表 / 详情
+- 番茄钟：前端倒计时（25:00）
+- 专注记录：记录 SUCCESS/FAIL（后端落库）
+- 虚拟币 MVP：SUCCESS 固定 +5 coins（后端落库可查）
 
-任务看板：任务创建/完成
+## 环境要求
+- JDK 17
+- Node.js 18+（建议）
 
-番茄钟：开始/完成记录与统计
+## 后端启动
+在项目根目录执行：
+- `./mvnw spring-boot:run`
 
-WebSocket：在线/专注状态同步（计划中）
+检查：
+- `GET http://localhost:8080/health` → `ok`
 
-悬赏问答 + 番茄币（计划中）
+H2 控制台：
+- `http://localhost:8080/h2`
+- JDBC URL：`jdbc:h2:file:./data/studyroom;MODE=MySQL`
+- 用户名：`sa`，密码空
 
-启动方式：
+## 前端启动
+在 `frontend/` 下执行：
+- `npm install`
+- `npm run dev`
 
-JDK 17
+访问：
+- `http://localhost:5173/rooms`
 
-运行 StudyroomApplication
+## 关键接口（示例）
+1) 创建房间
+- `POST /api/rooms`
+```json
+{ "title": "早读房", "subject": "背单词", "description": "25分钟一个番茄" }
+```
 
-访问：http://localhost:8080/health（已完成）
+2) 房间详情
+- `GET /api/rooms/{id}`
 
-（后续补：H2 控制台、API 文档、前端启动方式）
+3) 记录一次 pomodoro
+- `POST /api/rooms/{id}/pomodoros`
+```json
+{ "durationMinutes": 25, "result": "SUCCESS" }
+```
+
+4) 查询 coins
+- `GET /api/rooms/{id}/coins`
+
+更多契约见：`docs/pomodoro-coin-api.md`

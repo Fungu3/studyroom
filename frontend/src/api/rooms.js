@@ -40,3 +40,28 @@ export function getRoom(id) {
 export function deleteRoom(id) {
   return http.del(`${BASE}/${id}`);
 }
+
+/**
+ * 创建一次 pomodoro 记录
+ * POST /api/rooms/{id}/pomodoros
+ * body: { durationMinutes, result }
+ */
+export function createPomodoro(roomId, payload) {
+  return http.post(`${BASE}/${roomId}/pomodoros`, payload);
+}
+
+/**
+ * 获取 pomodoro 列表（默认后端返回最近 20 条）
+ * GET /api/rooms/{id}/pomodoros
+ */
+export function listPomodoros(roomId) {
+  return http.get(`${BASE}/${roomId}/pomodoros`);
+}
+
+/**
+ * 获取 coins
+ * GET /api/rooms/{id}/coins
+ */
+export function getCoins(roomId) {
+  return http.get(`${BASE}/${roomId}/coins`);
+}

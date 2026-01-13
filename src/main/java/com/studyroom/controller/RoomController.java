@@ -24,6 +24,11 @@ public class RoomController {
         return roomService.list();
     }
 
+    @GetMapping("/{id}")
+    public Room get(@PathVariable Long id) {
+        return roomService.getRoom(id);
+    }
+
     @PostMapping
     public Room create(@Valid @RequestBody CreateRoomRequest req) {
         return roomService.create(req);
