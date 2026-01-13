@@ -7,7 +7,7 @@ function pad2(n) {
   return String(n).padStart(2, "0");
 }
 
-export default function PomodoroTimer({ initialMinutes = 25, onComplete }) {
+export default function PomodoroTimer({ initialMinutes = 25, onComplete, onStart, onStop }) {
   const initialSeconds = useMemo(() => Math.max(1, initialMinutes) * 60, [initialMinutes]);
 
   const [running, setRunning] = useState(false);
@@ -28,6 +28,7 @@ export default function PomodoroTimer({ initialMinutes = 25, onComplete }) {
   };
 
   const reset = () => {
+    if (running && onStop) onStop("reset");
     stop();
     setRemainingSeconds(initialSeconds);
   };
@@ -51,6 +52,7 @@ export default function PomodoroTimer({ initialMinutes = 25, onComplete }) {
           setRunning(false);
           setCompletedCount((c) => c + 1);
           if (onComplete) onComplete();
+          if (onStop) onStop("complete");
           return initialSeconds;
         }
         return prev - 1;
@@ -78,10 +80,23 @@ export default function PomodoroTimer({ initialMinutes = 25, onComplete }) {
       <div style={{ height: 12 }} />
 
       <Space wrap>
-        <Button type="primary" onClick={() => setRunning(true)} disabled={running}>
+        <Button
+          type="primary"
+          onClick={() => {
+            if (!running && onStart) onStart();
+            setRunning(true);
+          }}
+          disabled={running}
+        >
           开始
         </Button>
-        <Button onClick={() => setRunning(false)} disabled={!running}>
+        <Button
+          onClick={() => {
+            if (running && onStop) onStop("pause");
+            setRunning(false);
+          }}
+          disabled={!running}
+        >
           暂停
         </Button>
         <Button onClick={reset}>
