@@ -1,144 +1,91 @@
-import { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
-import { Card, Form, Input, Button, message, List, Tag, Space, Badge } from "antd";
-import { listRooms, createRoom } from "../api/rooms";
-import { health } from "../api/system";
+// frontend/src/pages/RoomsPage.jsx
+import React, { useEffect, useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
+import { Card, Tag, Typography, message, Row, Col, Badge, Skeleton } from "antd";
+import { listRooms } from "../api/rooms";
+import { UserOutlined, ClockCircleOutlined } from '@ant-design/icons';
+
+const { Meta } = Card;
+const { Text } = Typography;
 
 export default function RoomsPage() {
   const [rooms, setRooms] = useState([]);
-  const [loadingList, setLoadingList] = useState(false);
-  const [creating, setCreating] = useState(false);
-
-  // null = 检测中，true = 在线，false = 离线
-  const [backendOk, setBackendOk] = useState(null);
-
-  const checkBackend = async () => {
-    try {
-      await health();
-      setBackendOk(true);
-    } catch (e) {
-      setBackendOk(false);
-    }
-  };
+  const [loading, setLoading] = useState(false);
+  const navigate = useNavigate();
 
   const fetchRooms = async () => {
-    setLoadingList(true);
+    setLoading(true);
     try {
       const data = await listRooms();
       setRooms(Array.isArray(data) ? data : []);
     } catch (e) {
       console.error(e);
-      message.error(`获取房间列表失败：${e.message || "请确认后端 8080 已启动"}`);
+      message.error(`获取房间列表失败：${e.message || "请确认后端服务"}`);
     } finally {
-      setLoadingList(false);
+      setLoading(false);
     }
   };
 
   useEffect(() => {
-    checkBackend();
     fetchRooms();
   }, []);
 
-  const onFinish = async (values) => {
-    setCreating(true);
-    try {
-      await createRoom(values);
-      message.success("创建成功");
-      await fetchRooms();
-    } catch (e) {
-      console.error(e);
-      message.error(`创建失败：${e.message || "请检查后端校验/日志"}`);
-      checkBackend();
-    } finally {
-      setCreating(false);
-    }
-  };
-
-  const backendText = backendOk === null ? "检测中..." : backendOk ? "在线（8080）" : "离线（8080）";
-  const backendBadgeStatus = backendOk === null ? "processing" : backendOk ? "success" : "error";
+  const getRandomImage = (id) => `https://picsum.photos/seed/${id}/300/160`;
 
   return (
-    <div style={{ maxWidth: 900, margin: "40px auto", padding: 16 }}>
-      <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 12 }}>
-        <h1 style={{ margin: 0 }}>Studyroom 虚拟自习室</h1>
-        <Badge status={backendBadgeStatus} text={`后端状态：${backendText}`} />
-        <Button size="small" onClick={checkBackend}>
-          重新检测
-        </Button>
-      </div>
+    <div style={{ padding: '24px', maxWidth: '1200px', margin: '0 auto' }}>
+       {loading ? (
+         <Skeleton active />
+       ) : (
+         <Row gutter={[24, 24]}>
+           {rooms.map(room => {
+             // Mock Status & Capacity
+             const isLearning = Math.random() > 0.3;
+             const currentCount = Math.floor(Math.random() * 10);
+             const maxCount = 20;
 
-      <Card title="创建自习室（POST /api/rooms）">
-        <Form layout="vertical" onFinish={onFinish}>
-          <Form.Item
-            label="房间标题 title"
-            name="title"
-            rules={[
-              { required: true, message: "请输入标题" },
-              { max: 50, message: "标题最多 50 个字符" },
-            ]}
-          >
-            <Input placeholder="例如：离散数学期末复习自习室" />
-          </Form.Item>
-
-          <Form.Item
-            label="科目 subject"
-            name="subject"
-            rules={[
-              { required: true, message: "请输入科目" },
-              { max: 30, message: "科目最多 30 个字符" },
-            ]}
-          >
-            <Input placeholder="例如：离散数学 / 操作系统 / LeetCode" />
-          </Form.Item>
-
-          <Form.Item
-            label="描述 description"
-            name="description"
-            rules={[{ max: 200, message: "描述最多 200 个字符" }]}
-          >
-            <Input.TextArea rows={3} placeholder="例如：每天2个番茄钟，互相答疑，完成任务得积分" />
-          </Form.Item>
-
-          <Space>
-            <Button type="primary" htmlType="submit" loading={creating}>
-              创建
-            </Button>
-            <Button onClick={fetchRooms} loading={loadingList}>
-              刷新列表
-            </Button>
-          </Space>
-        </Form>
-      </Card>
-
-      <div style={{ height: 16 }} />
-
-      <Card title={`房间列表（${rooms.length}）`} extra={<span style={{ color: "#888" }}>GET /api/rooms</span>}>
-        <List
-          loading={loadingList}
-          dataSource={rooms}
-          locale={{ emptyText: "暂无房间，先创建一个吧" }}
-          renderItem={(r) => (
-            <List.Item
-              actions={[
-                <Link key="enter" to={`/rooms/${r.id}`}>
-                  进入
-                </Link>,
-              ]}
-            >
-              <List.Item.Meta
-                title={
-                  <Space>
-                    <span>{r.title}</span>
-                    <Tag>{r.subject}</Tag>
-                  </Space>
-                }
-                description={r.description || "（无描述）"}
-              />
-              <div style={{ color: "#888" }}>{r.createdAt ? String(r.createdAt) : ""}</div>
-            </List.Item>
-          )}
-        />
-      </Card>
+             return (
+               <Col xs={24} sm={12} md={8} lg={6} key={room.id}>
+                 <Card
+                   hoverable
+                   cover={
+                     <div style={{ position: 'relative', height: 160, overflow: 'hidden' }}>
+                       <img alt="example" src={getRandomImage(room.id)} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                       <div style={{ position: 'absolute', top: 10, left: 10 }}>
+                          <Tag color={isLearning ? "success" : "error"}>
+                            {isLearning ? "学习中" : "未开始"}
+                          </Tag>
+                       </div>
+                     </div>
+                   }
+                   onClick={() => navigate(`/rooms/${room.id}`)}
+                 >
+                   <Meta
+                    title={room.title}
+                    description={
+                      <div>
+                        <div style={{ marginBottom: 8, display: 'flex', justifyContent: 'space-between' }}>
+                           <Text type="secondary" style={{ fontSize: 12 }}>
+                             <UserOutlined /> {currentCount} / {maxCount}
+                           </Text>
+                           <Text type="secondary" style={{ fontSize: 12 }}>
+                              {isLearning ? "专注时刻" : "休息中"}
+                           </Text>
+                        </div>
+                      </div>
+                    }
+                   />
+                 </Card>
+               </Col>
+             );
+           })}
+           {rooms.length === 0 && !loading && (
+               <div style={{ width: '100%', textAlign: 'center', marginTop: 50 }}>
+                   <Text type="secondary">暂无房间，点击上方“创建房间”开始吧</Text>
+               </div>
+           )}
+         </Row>
+       )}
     </div>
   );
 }
