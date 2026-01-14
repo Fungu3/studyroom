@@ -1,5 +1,5 @@
 server:
-  port: 8080
+  port: ${PORT:8080}
   address: 0.0.0.0
   tomcat:
     uri-encoding: UTF-8
@@ -10,12 +10,10 @@ server:
       force: true
 
 spring:
+  profiles:
+    active: dev
   datasource:
-    # AUTO_SERVER=TRUE 允许同一个 H2 文件被多个进程访问（避免“文件被锁/已在使用”）
-    url: jdbc:h2:file:./data/studyroom;MODE=MySQL;AUTO_SERVER=TRUE
-    driver-class-name: org.h2.Driver
-    username: sa
-    password: ""
+    url: jdbc:h2:file:/var/data/studyroom;MODE=MySQL;AUTO_SERVER=TRUE
 
   jpa:
     hibernate:
@@ -25,8 +23,3 @@ spring:
     properties:
       hibernate:
         format_sql: true
-
-  h2:
-    console:
-      enabled: true
-      path: /h2

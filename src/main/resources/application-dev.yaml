@@ -1,0 +1,11 @@
+spring:
+  datasource:
+    url: jdbc:h2:file:./data/studyroom;MODE=MySQL;AUTO_SERVER=TRUE
+    driver-class-name: org.h2.Driver
+    username: sa
+    password: ""
+
+  h2:
+    console:
+      enabled: true
+      path: /h2
