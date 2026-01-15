@@ -1,5 +1,6 @@
 import { Navigate, Route, Routes } from "react-router-dom";
 import RoomsPage from "./pages/RoomsPage";
+import CreateRoomPage from "./pages/CreateRoomPage";
 import RoomDetailPage from "./pages/RoomDetailPage";
 import LoginPage from "./pages/LoginPage";
 import RegisterPage from "./pages/RegisterPage";
@@ -21,6 +22,12 @@ export default function App() {
       <Route path="/rooms" element={
         <LayoutWrapper>
           <RoomsPage />
+        </LayoutWrapper>
+      } />
+
+      <Route path="/rooms/create" element={
+        <LayoutWrapper>
+          <CreateRoomPage />
         </LayoutWrapper>
       } />
       

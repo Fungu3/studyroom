@@ -33,27 +33,35 @@ export default function RoomsPage() {
   const getRandomImage = (id) => `https://picsum.photos/seed/${id}/300/160`;
 
   return (
-    <div style={{ padding: '24px', maxWidth: '1200px', margin: '0 auto' }}>
+    <div style={{ padding: '24px' }}>
        {loading ? (
          <Skeleton active />
        ) : (
-         <Row gutter={[24, 24]}>
+         <div style={{ display: 'flex', flexWrap: 'wrap', gap: '24px' }}>
            {rooms.map(room => {
-             // Mock Status & Capacity
-             const isLearning = Math.random() > 0.3;
-             const currentCount = Math.floor(Math.random() * 10);
-             const maxCount = 20;
+             // Extract capacity from description if present "Capacity: N"
+             let maxCount = 20;
+             if (room.description) {
+                const capMatch = room.description.match(/Capacity:\s*(\d+)/);
+                if (capMatch) {
+                    maxCount = parseInt(capMatch[1], 10);
+                }
+             }
+             
+             const currentCount = 0; // Backend doesn't support yet
 
              return (
-               <Col xs={24} sm={12} md={8} lg={6} key={room.id}>
+               <div key={room.id} style={{ width: '300px', height: '320px' }}>
                  <Card
                    hoverable
+                   style={{ width: '100%', height: '100%' }}
+                   bodyStyle={{ height: 'calc(100% - 160px)', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}
                    cover={
                      <div style={{ position: 'relative', height: 160, overflow: 'hidden' }}>
                        <img alt="example" src={getRandomImage(room.id)} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                        <div style={{ position: 'absolute', top: 10, left: 10 }}>
-                          <Tag color={isLearning ? "success" : "error"}>
-                            {isLearning ? "学习中" : "未开始"}
+                          <Tag color="success">
+                            学习中
                           </Tag>
                        </div>
                      </div>
@@ -69,14 +77,14 @@ export default function RoomsPage() {
                              <UserOutlined /> {currentCount} / {maxCount}
                            </Text>
                            <Text type="secondary" style={{ fontSize: 12 }}>
-                              {isLearning ? "专注时刻" : "休息中"}
+                              专注时刻
                            </Text>
                         </div>
                       </div>
                     }
                    />
                  </Card>
-               </Col>
+               </div>
              );
            })}
            {rooms.length === 0 && !loading && (
@@ -84,7 +92,7 @@ export default function RoomsPage() {
                    <Text type="secondary">暂无房间，点击上方“创建房间”开始吧</Text>
                </div>
            )}
-         </Row>
+         </div>
        )}
     </div>
   );

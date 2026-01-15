@@ -1,42 +1,70 @@
 // frontend/src/pages/LoginPage.jsx
-import React from 'react';
+import React, { useState } from 'react';
 import { Card, Form, Input, Button, Typography, Space, message } from 'antd';
 import { UserOutlined, LockOutlined, ReadOutlined, LaptopOutlined, CoffeeOutlined } from '@ant-design/icons';
 import { Link, useNavigate } from 'react-router-dom';
+import classroomBg from '../assets/classroom.png';
+import { login } from '../api/system';
 
 const { Title, Text } = Typography;
 
 export default function LoginPage() {
   const navigate = useNavigate();
+  const [loading, setLoading] = useState(false);
 
-  const onFinish = (values) => {
-    console.log('Login values:', values);
-    // Simulate login
-    localStorage.setItem("studyroom_user", JSON.stringify({ name: values.username, id: Date.now() }));
-    message.success("登录成功");
-    navigate('/rooms');
+  const onFinish = async (values) => {
+    setLoading(true);
+    try {
+        const user = await login(values);
+        localStorage.setItem("studyroom_user", JSON.stringify(user));
+        message.success("登录成功");
+        navigate('/rooms');
+    } catch (e) {
+        message.error("登录失败: " + (e.response?.message || "用户名或密码错误"));
+        console.error(e);
+    } finally {
+        setLoading(false);
+    }
   };
 
   return (
     <div style={{
+      position: 'relative',
       height: '100vh',
       width: '100vw',
-      background: 'linear-gradient(135deg, #1890ff 0%, #001529 100%)', // Placeholder background
       display: 'flex',
       justifyContent: 'center',
       alignItems: 'center',
-      padding: '20px'
+      overflow: 'hidden'
     }}>
+      {/* Background Image with Blur */}
+      <div style={{
+          position: 'absolute',
+          top: 0, left: 0, right: 0, bottom: 0,
+          backgroundImage: `url(${classroomBg})`,
+          backgroundSize: 'cover',
+          backgroundPosition: 'center',
+          filter: 'blur(8px)',
+          zIndex: 0,
+      }} />
+      <div style={{
+          position: 'absolute',
+          top: 0, left: 0, right: 0, bottom: 0,
+          backgroundColor: 'rgba(0,0,0,0.2)',
+          zIndex: 1,
+      }} />
+
       <div style={{
         width: '60%',
         maxWidth: '900px',
         minWidth: '600px',
-        backgroundColor: 'rgba(24, 144, 255, 0.8)', // Blue semi-transparent
+        backgroundColor: 'rgba(24, 144, 255, 0.85)', // Blue semi-transparent
         borderRadius: '16px',
         display: 'flex',
         overflow: 'hidden',
         boxShadow: '0 8px 32px rgba(0, 0, 0, 0.3)',
-        position: 'relative'
+        position: 'relative',
+        zIndex: 2
       }}>
         {/* Title Top Right (Overlaid or part of layout, sticking to layout for simplicity) */}
         <div style={{ position: 'absolute', top: 20, right: 30, zIndex: 1 }}>

@@ -15,6 +15,9 @@ public class CoinTransaction {
     private Long roomId;
 
     @Column(nullable = false)
+    private Long userId;
+
+    @Column(nullable = false)
     private Integer delta; // amount change
 
     @Column(nullable = false)
@@ -32,6 +35,8 @@ public class CoinTransaction {
     public Long getId() { return id; }
     public Long getRoomId() { return roomId; }
     public void setRoomId(Long roomId) { this.roomId = roomId; }
+    public Long getUserId() { return userId; }
+    public void setUserId(Long userId) { this.userId = userId; }
     public Integer getDelta() { return delta; }
     public void setDelta(Integer delta) { this.delta = delta; }
     public String getReason() { return reason; }

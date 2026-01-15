@@ -14,6 +14,9 @@ public class Pomodoro {
     @Column(nullable = false)
     private Long roomId;
 
+    @Column(name = "user_id", nullable = true)
+    private Long userId;
+
     @Column(nullable = false)
     private Integer durationMinutes;
 
@@ -35,6 +38,8 @@ public class Pomodoro {
     public Long getId() { return id; }
     public Long getRoomId() { return roomId; }
     public void setRoomId(Long roomId) { this.roomId = roomId; }
+    public Long getUserId() { return userId; }
+    public void setUserId(Long userId) { this.userId = userId; }
     public Integer getDurationMinutes() { return durationMinutes; }
     public void setDurationMinutes(Integer durationMinutes) { this.durationMinutes = durationMinutes; }
     public PomodoroResult getResult() { return result; }

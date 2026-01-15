@@ -1,3 +1,4 @@
+package com.studyroom;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -13,10 +14,14 @@ public class CorsConfig {
       @Override
       public void addCorsMappings(CorsRegistry registry) {
         registry.addMapping("/**")
-            .allowedOrigins(
-                "http://localhost:5173",
-                "https://studyroom-kappa.vercel.app"
-            )
+          .allowedOriginPatterns(
+            "http://localhost:5173",
+            "http://127.0.0.1:5173",
+            "http://192.168.*.*:5173",
+            "http://10.*.*.*:5173",
+            "http://172.*.*.*:5173",
+            "https://studyroom-kappa.vercel.app"
+          )
             .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS")
             .allowedHeaders("*")
             .allowCredentials(false);

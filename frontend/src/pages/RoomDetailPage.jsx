@@ -1,288 +1,402 @@
-// frontend/src/pages/RoomDetailPage.jsx
-import React, { useEffect, useMemo, useRef, useState } from "react";
-import { Link, useParams, useNavigate } from "react-router-dom";
-import { Card, Button, Space, Tag, Typography, message, List, Input, Row, Col, Tabs, Avatar, Badge, Switch, Tooltip, Modal, Statistic } from "antd";
-import { UserOutlined, ClockCircleOutlined, TrophyOutlined, CloseOutlined, SendOutlined, InfoCircleOutlined, SettingOutlined } from '@ant-design/icons';
+import { useEffect, useMemo, useRef, useState } from "react";
+import { Link, useParams } from "react-router-dom";
+import { Card, Button, Space, Tag, Typography, message, Divider, List, Input } from "antd";
 
 import { getRoom, createPomodoro, listPomodoros, getCoins } from "../api/rooms";
 import PomodoroTimer from "../components/PomodoroTimer";
 
-const { Text, Title, Paragraph } = Typography;
-const { TextArea } = Input;
+const { Text } = Typography;
 
 export default function RoomDetailPage() {
-  const { id } = useParams();
-  const navigate = useNavigate();
-  const roomId = useMemo(() => Number(id), [id]);
+    const { id } = useParams();
+    const roomId = useMemo(() => Number(id), [id]);
+    const isRoomIdValid = Number.isFinite(roomId) && roomId > 0;
 
-  // User State
-  const [user, setUser] = useState(() => {
-    try {
-      const raw = localStorage.getItem("studyroom_user");
-      if (raw) return JSON.parse(raw);
-    } catch {}
-    const idPart = Date.now().toString(36);
-    return { id: idPart, name: "Guest" + idPart.slice(-4) };
-  });
-
-  // Room Data
-  const [room, setRoom] = useState(null);
-  const [loadingRoom, setLoadingRoom] = useState(false);
-  
-  // WS State
-  const wsRef = useRef(null);
-  const [wsStatus, setWsStatus] = useState("disconnected");
-  const [members, setMembers] = useState([]);
-  const [chatDraft, setChatDraft] = useState("");
-  const [chatMessages, setChatMessages] = useState([]);
-
-  // Pomodoro & Coins
-  const [coins, setCoins] = useState(null);
-  const [pomodoros, setPomodoros] = useState([]);
-
-  useEffect(() => {
-    fetchRoomData();
-    // eslint-disable-next-line
-  }, [roomId]);
-
-  const fetchRoomData = async () => {
-    setLoadingRoom(true);
-    try {
-      const data = await getRoom(roomId);
-      setRoom(data);
-      const c = await getCoins(roomId);
-      setCoins(c);
-      const p = await listPomodoros(roomId);
-      setPomodoros(Array.isArray(p) ? p : []);
-    } catch (e) {
-      console.error(e);
-      // message.error("Failed to load room data");
-    } finally {
-      setLoadingRoom(false);
-    }
-  };
-
-  // WebSocket Logic
-  useEffect(() => {
-    const scheme = window.location.protocol === "https:" ? "wss" : "ws";
-    const wsUrl = `${scheme}://${window.location.host}/ws`;
-
-    const ws = new WebSocket(wsUrl);
-    wsRef.current = ws;
-
-    ws.onopen = () => {
-      setWsStatus("connected");
-      ws.send(JSON.stringify({ type: "join", payload: { roomId, user } }));
-    };
-
-    ws.onmessage = (ev) => {
-      try {
-        const msg = JSON.parse(ev.data);
-        if (!msg.type) return;
-
-        if (msg.type === "chatMessage") {
-           setChatMessages(prev => [...prev, msg.payload].slice(-100));
-        } else if (msg.type === "roomMembersUpdate") {
-           setMembers(msg.payload.members || []);
-        } else if (msg.type === "timerStatus") {
-           // Update member status locally
-           const { userId, status } = msg.payload;
-           setMembers(prev => prev.map(m => m.id === userId ? { ...m, status } : m));
+    const [user, setUser] = useState(() => {
+        try {
+            const raw = localStorage.getItem("studyroom_user");
+            if (raw) {
+                const parsed = JSON.parse(raw);
+                if (parsed && typeof parsed === "object") {
+                    return {
+                        id: String(parsed.id || ""),
+                        name: String(parsed.username || parsed.name || "").trim() || "游客",
+                    };
+                }
+            }
+        } catch {
+            // ignore
         }
-      } catch (e) {
-        console.error("WS Parse error", e);
-      }
+        const idPart = typeof crypto !== "undefined" && crypto.randomUUID
+            ? crypto.randomUUID()
+            : `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+        return { id: idPart, name: "游客" };
+    });
+
+    const wsRef = useRef(null);
+    const [wsStatus, setWsStatus] = useState("disconnected");
+    const [members, setMembers] = useState([]);
+    const [chatDraft, setChatDraft] = useState("");
+    const [chatMessages, setChatMessages] = useState([]);
+
+    const [room, setRoom] = useState(null);
+    const [loadingRoom, setLoadingRoom] = useState(false);
+
+    const [coins, setCoins] = useState(null);
+    const [loadingCoins, setLoadingCoins] = useState(false);
+
+    const [pomodoros, setPomodoros] = useState([]);
+    const [loadingPomodoros, setLoadingPomodoros] = useState(false);
+
+    const refreshRoom = async () => {
+        setLoadingRoom(true);
+        try {
+            const data = await getRoom(roomId);
+            setRoom(data);
+        } catch (e) {
+            console.error(e);
+            message.error(`获取房间详情失败：${e.message}`);
+        } finally {
+            setLoadingRoom(false);
+        }
     };
 
-    ws.onclose = () => setWsStatus("disconnected");
-
-    return () => {
-      if (ws.readyState === WebSocket.OPEN) ws.close();
+    const refreshCoins = async () => {
+        setLoadingCoins(true);
+        try {
+            const data = await getCoins(roomId);
+            setCoins(data);
+        } catch (e) {
+            console.error(e);
+            message.error(`获取 coins 失败：${e.message}`);
+        } finally {
+            setLoadingCoins(false);
+        }
     };
-  }, [roomId, user]);
 
-  const sendMessage = () => {
-      if (!chatDraft.trim()) return;
-      wsRef.current?.send(JSON.stringify({ type: "chat", payload: { roomId, content: chatDraft } }));
-      setChatDraft("");
-  };
+    const refreshPomodoros = async () => {
+        setLoadingPomodoros(true);
+        try {
+            const data = await listPomodoros(roomId);
+            setPomodoros(Array.isArray(data) ? data : []);
+        } catch (e) {
+            console.error(e);
+            message.error(`获取 pomodoro 列表失败：${e.message}`);
+        } finally {
+            setLoadingPomodoros(false);
+        }
+    };
 
-  const updateStatus = (status) => {
-      wsRef.current?.send(JSON.stringify({ type: "timerStatus", payload: { status } }));
-  };
+    useEffect(() => {
+        if (!isRoomIdValid) return;
+        refreshRoom();
+        refreshCoins();
+        refreshPomodoros();
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [roomId, isRoomIdValid]);
 
-  const handleExit = () => {
-      Modal.confirm({
-          title: '确认离开？',
-          content: '中途退出将扣除 50% 金币奖励 (模拟)',
-          onOk: () => navigate('/rooms')
-      });
-  };
+    const persistUser = (next) => {
+        setUser(next);
+        try {
+            localStorage.setItem("studyroom_user", JSON.stringify(next));
+        } catch {
+            // ignore
+        }
+    };
 
-  // Visual Round Table Layout
-  const renderVisualTable = () => {
-      const radius = 180;
-      const centerX = 250;
-      const centerY = 250;
-      const angleStep = (2 * Math.PI) / (Math.max(members.length, 1) + (members.length === 0 ? 1 : 0));
+    const wsSend = (msgObj) => {
+        const ws = wsRef.current;
+        if (!ws || ws.readyState !== WebSocket.OPEN) {
+            message.warning("实时连接未就绪（WS 未连接）");
+            return;
+        }
+        ws.send(JSON.stringify(msgObj));
+    };
 
-      return (
-          <div style={{ position: 'relative', width: 500, height: 500, margin: '0 auto', background: 'url(https://img.freepik.com/free-photo/empty-classroom-interior-with-wooden-desks_23-2148895066.jpg)', backgroundSize: 'cover', borderRadius: '16px', overflow:'hidden' }}>
-              {/* Overlay */}
-              <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.3)' }} />
-              
-              {/* Table */}
-              <div style={{ 
-                  position: 'absolute', left: '50%', top: '50%', transform: 'translate(-50%, -50%)',
-                  width: 250, height: 250, borderRadius: '50%', backgroundColor: '#8c5e26', border: '8px solid #5e3c17',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center'
-              }}>
-                  <div style={{ color: 'white', textAlign: 'center' }}>
-                      <Title level={4} style={{ color: 'white', margin: 0 }}>Room {roomId}</Title>
-                      <Text style={{ color: '#ddd' }}>{room?.subject}</Text>
-                  </div>
-              </div>
+    useEffect(() => {
+        if (!isRoomIdValid) return;
 
-              {/* Members */}
-              {members.map((member, index) => {
-                  const angle = index * angleStep;
-                  const x = centerX + radius * Math.cos(angle) - 32; // 32 is half width
-                  const y = centerY + radius * Math.sin(angle) - 32;
-                  
-                  return (
-                      <div key={member.id} style={{ position: 'absolute', left: x, top: y, textAlign: 'center' }}>
-                          <Tooltip title={`${member.name} (${member.status || 'idle'})`}>
-                                <Badge dot color={member.status === 'focusing' ? 'green' : 'gold'}>
-                                    <Avatar size={64} style={{ backgroundColor: member.status === 'focusing' ? '#52c41a' : '#faad14' }} icon={<UserOutlined />} />
-                                </Badge>
-                          </Tooltip>
-                          <div style={{ background: 'rgba(0,0,0,0.6)', borderRadius: 4, padding: '2px 4px', marginTop: 4 }}>
-                              <Text style={{ color: 'white', fontSize: 12 }}>{member.name}</Text>
-                          </div>
-                      </div>
-                  );
-              })}
-          </div>
-      );
-  };
+        const scheme = window.location.protocol === "https:" ? "wss" : "ws";
+        const wsUrl = `${scheme}://${window.location.host}/ws`;
 
-  return (
-    <div style={{ height: '100vh', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-        {/* Header - Minimal for immersive feel */}
-        <div style={{ padding: '0 24px', height: 64, background: '#001529', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-             <Space>
-                 <Title level={4} style={{ color: 'white', margin: 0 }}>{room?.title || 'Loading...'}</Title>
-                 <Tag>{room?.subject || ' 自习 '}</Tag>
-             </Space>
-             <Space>
-                 <Button type="text" icon={<SettingOutlined />} style={{ color: 'white' }}>更多</Button>
-                 <Button type="primary" danger icon={<CloseOutlined />} onClick={handleExit}>关闭</Button>
-             </Space>
-        </div>
+        setWsStatus("connecting");
+        const ws = new WebSocket(wsUrl);
+        wsRef.current = ws;
 
-        <div style={{ flex: 1, display: 'flex', overflow: 'hidden', padding: 16, background: '#f0f2f5' }}>
-            
-            {/* Left: Info & Chat */}
-            <div style={{ width: 300, display: 'flex', flexDirection: 'column', gap: 16 }}>
-                 <Card style={{ flex: 1, display: 'flex', flexDirection: 'column' }} bodyStyle={{ flex: 1, display: 'flex', flexDirection: 'column', padding: 12 }}>
-                    <Tabs defaultActiveKey="1" items={[
-                        { key: '1', label: '聊天', children: (
-                            <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
-                                <div style={{ flex: 1, overflowY: 'auto', marginBottom: 12 }}>
-                                    <List
-                                        size="small"
-                                        dataSource={chatMessages}
-                                        renderItem={msg => (
-                                            <List.Item style={{ padding: '8px 0', border: 'none' }}>
-                                                <div style={{ width: '100%' }}>
-                                                     <Text type="secondary" style={{ fontSize: 10 }}>{msg.user?.name}</Text>
-                                                     <div style={{ background: '#e6f7ff', padding: '8px 12px', borderRadius: 8, display: 'inline-block', maxWidth: '80%' }}>
-                                                         {msg.content}
-                                                     </div>
-                                                </div>
-                                            </List.Item>
-                                        )}
-                                    />
-                                </div>
-                                <Space.Compact style={{ width: '100%' }}>
-                                    <Input value={chatDraft} onChange={e => setChatDraft(e.target.value)} onPressEnter={sendMessage} placeholder="说点什么..." />
-                                    <Button type="primary" icon={<SendOutlined />} onClick={sendMessage} />
-                                </Space.Compact>
-                            </div>
-                        )},
-                        { key: '2', label: '信息', children: (
-                            <Space direction="vertical">
-                                <Text>ID: {roomId}</Text>
-                                <Text>创建时间: {room?.createdAt}</Text>
-                                <Text>描述: {room?.description}</Text>
-                                <Divider style={{ margin: '12px 0' }} />
-                                <Statistic title="在线人数" value={members.length} />
-                                <Statistic title="累计金币" value={coins?.totalCoins || 0} precision={2} />
-                            </Space>
+        ws.onopen = () => {
+            setWsStatus("connected");
+            ws.send(JSON.stringify({
+                type: "join",
+                payload: { roomId, user },
+            }));
+        };
+
+        ws.onmessage = (ev) => {
+            let msgObj;
+            try {
+                msgObj = JSON.parse(ev.data);
+            } catch {
+                return;
+            }
+            const { type, payload } = msgObj || {};
+            if (!type) return;
+
+            if (type === "joined") {
+                const effective = payload?.user;
+                if (effective?.id && effective.id !== user.id) {
+                    persistUser({ ...user, id: String(effective.id) });
+                }
+                return;
+            }
+
+            if (type === "roomMembersUpdate") {
+                setMembers(Array.isArray(payload?.members) ? payload.members : []);
+                return;
+            }
+
+            if (type === "chatMessage") {
+                setChatMessages((prev) => {
+                    const next = [...prev, payload].filter(Boolean);
+                    return next.slice(-200);
+                });
+                return;
+            }
+
+            if (type === "timerStatus") {
+                const userId = payload?.userId;
+                const status = payload?.status;
+                if (!userId) return;
+                setMembers((prev) => prev.map((m) => (
+                    m?.id === userId ? { ...m, status: status || m.status } : m
+                )));
+            }
+        };
+
+        ws.onclose = () => {
+            setWsStatus("disconnected");
+        };
+
+        ws.onerror = () => {
+            setWsStatus("disconnected");
+        };
+
+        return () => {
+            try {
+                if (ws.readyState === WebSocket.OPEN) {
+                    ws.send(JSON.stringify({ type: "leave", payload: {} }));
+                }
+            } catch {
+                // ignore
+            }
+            try {
+                ws.close();
+            } catch {
+                // ignore
+            }
+            wsRef.current = null;
+        };
+    }, [roomId, isRoomIdValid]);
+
+    const submitPomodoro = async (result) => {
+        const numericUserId = Number(user?.id);
+        if (!Number.isFinite(numericUserId) || numericUserId <= 0) {
+            message.error("请先登录后再记录番茄钟");
+            return;
+        }
+        try {
+            const resp = await createPomodoro(roomId, { durationMinutes: 25, result, userId: numericUserId });
+            message.success(`记录成功：${result}，本次 +${resp.awardedCoins || 0} coins`);
+            await refreshCoins();
+            await refreshPomodoros();
+        } catch (e) {
+            console.error(e);
+            message.error(`记录失败：${e.message}`);
+        }
+    };
+
+    return (
+        <div style={{ maxWidth: 900, margin: "40px auto", padding: 16 }}>
+            <Space style={{ marginBottom: 12 }}>
+                <Link to="/rooms">
+                    <Button>返回列表</Button>
+                </Link>
+                <Button onClick={() => { refreshRoom(); refreshCoins(); refreshPomodoros(); }}>
+                    刷新
+                </Button>
+            </Space>
+
+            <Card title={`房间详情（GET /api/rooms/${roomId}）`} loading={loadingRoom}>
+                {room ? (
+                    <Space direction="vertical" style={{ width: "100%" }}>
+                        <Space wrap>
+                            <Text strong style={{ fontSize: 18 }}>{room.title}</Text>
+                            <Tag>{room.subject}</Tag>
+                            <Tag color="blue">ID: {room.id}</Tag>
+                        </Space>
+                        <Text type="secondary">{room.description || "（无描述）"}</Text>
+                        <Text type="secondary">创建时间：{room.createdAt ? String(room.createdAt) : ""}</Text>
+                    </Space>
+                ) : (
+                    <Text type="secondary">
+                        {isRoomIdValid ? "房间不存在或加载失败" : "房间编号无效"}
+                    </Text>
+                )}
+            </Card>
+
+            <div style={{ height: 16 }} />
+
+            <Card
+                title="实时在线（WebSocket /ws）"
+                extra={
+                    <Space wrap>
+                        <Tag color={wsStatus === "connected" ? "green" : wsStatus === "connecting" ? "gold" : "default"}>
+                            WS: {wsStatus}
+                        </Tag>
+                        <Tag color="blue">在线：{members.length}</Tag>
+                    </Space>
+                }
+            >
+                <Space direction="vertical" style={{ width: "100%" }}>
+                    <Space wrap align="center">
+                        <span>你的昵称：</span>
+                        <Input
+                            style={{ width: 200 }}
+                            value={user.name}
+                            onChange={(e) => persistUser({ ...user, name: e.target.value })}
+                            onBlur={() => {
+                                const trimmed = String(user.name || "").trim() || "游客";
+                                const next = trimmed !== user.name ? { ...user, name: trimmed } : user;
+                                if (next !== user) persistUser(next);
+                                wsSend({ type: "join", payload: { roomId, user: next } });
+                            }}
+                            placeholder="输入昵称"
+                        />
+                    </Space>
+
+                    <List
+                        size="small"
+                        dataSource={members}
+                        locale={{ emptyText: wsStatus === "connected" ? "暂无成员" : "未连接" }}
+                        renderItem={(m) => (
+                            <List.Item>
+                                <Space wrap>
+                                    <Text strong>{m?.name || m?.id || "?"}</Text>
+                                    <Tag color={m?.status === "focusing" ? "green" : "default"}>
+                                        {m?.status === "focusing" ? "专注中" : "空闲"}
+                                    </Tag>
+                                    {m?.id === user.id ? <Tag color="purple">你</Tag> : null}
+                                </Space>
+                            </List.Item>
                         )}
-                    ]} />
-                 </Card>
-            </div>
+                    />
+                </Space>
+            </Card>
 
-            {/* Center: Visual Table */}
-            <div style={{ flex: 1, display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
-                 {renderVisualTable()}
-            </div>
+            <div style={{ height: 16 }} />
 
-            {/* Right: Collaboration */}
-            <div style={{ width: 320, display: 'flex', flexDirection: 'column', gap: 16 }}>
-                 <Card title="番茄钟" extra={<Switch checkedChildren="专注" unCheckedChildren="休息" onChange={checked => updateStatus(checked ? 'focusing' : 'idle')} />}>
-                      <PomodoroTimer 
-                          initialMinutes={25} 
-                          onStart={() => updateStatus('focusing')}
-                          onStop={() => updateStatus('idle')}
-                          onComplete={() => {
-                              message.success("专注完成！金币 +5");
-                              createPomodoro(roomId, { durationMinutes: 25, result: 'SUCCESS' })
-                                  .then(() => {
-                                      getCoins(roomId).then(setCoins);
-                                      listPomodoros(roomId).then(p => setPomodoros(Array.isArray(p) ? p : []));
-                                  })
-                                  .catch(console.error);
-                              updateStatus('idle');
-                          }}
-                      />
-                 </Card>
+            <Card
+                title="Coins（GET /api/rooms/{id}/coins）"
+                loading={loadingCoins}
+                extra={
+                    coins ? (
+                        <Space wrap>
+                            <Tag color="gold">Total: {coins.totalCoins ?? 0}</Tag>
+                            <Tag>Last: {coins.lastTransactionAt ? String(coins.lastTransactionAt) : "-"}</Tag>
+                        </Space>
+                    ) : null
+                }
+            >
+                <Text type="secondary">完成一次 SUCCESS 默认 +5 coins（MVP 规则写死）。</Text>
+            </Card>
 
-                 <Card title="成员列表" style={{ flex: 1, overflowY: 'auto' }}>
-                      <List
-                          itemLayout="horizontal"
-                          dataSource={members}
-                          renderItem={item => (
-                              <List.Item>
-                                  <List.Item.Meta
-                                      avatar={<Avatar style={{ backgroundColor: item.status === 'focusing' ? '#52c41a' : '#ccc' }} icon={<UserOutlined />} />}
-                                      title={item.name}
-                                      description={item.status === 'focusing' ? '专注中...' : '休息中'}
-                                  />
-                              </List.Item>
-                          )}
-                      />
-                 </Card>
+            <div style={{ height: 16 }} />
 
-                 <Card size="small" title={<Space><TrophyOutlined /><span>专注榜</span></Space>}>
-                      {/* Mock Ranking */}
-                      <List
-                          size="small"
-                          dataSource={members.slice(0, 5)} // Mock sorting
-                          renderItem={(item, i) => (
-                              <List.Item>
-                                  <Space>
-                                      <Badge count={i+1} style={{ backgroundColor: i < 3 ? '#f5222d' : '#ccc' }} /> 
-                                      {item.name}
-                                  </Space>
-                                  <Text type="secondary">2h 30m</Text>
-                              </List.Item>
-                          )}
-                      />
-                 </Card>
-            </div>
+            <Card title="番茄钟（前端计时 + 后端记录）">
+                <PomodoroTimer
+                    initialMinutes={25}
+                    onComplete={() => {
+                        message.info("计时完成：可点 SUCCESS / FAIL 记录到后端");
+                        wsSend({ type: "timerStatus", payload: { status: "idle" } });
+                    }}
+                    onStart={() => wsSend({ type: "timerStatus", payload: { status: "focusing" } })}
+                    onStop={() => wsSend({ type: "timerStatus", payload: { status: "idle" } })}
+                />
+                <Divider />
+                <Space wrap>
+                    <Button type="primary" onClick={() => submitPomodoro("SUCCESS")}>\
+                        完成 SUCCESS（记录 + 加币）
+                    </Button>
+                    <Button danger onClick={() => submitPomodoro("FAIL")}>\
+                        失败 FAIL（仅记录）
+                    </Button>
+                </Space>
+            </Card>
+
+            <div style={{ height: 16 }} />
+
+            <Card title="房间聊天（WebSocket）" extra={<Text type="secondary">轻量 MVP：不存库，刷新会丢</Text>}>
+                <List
+                    size="small"
+                    style={{ maxHeight: 240, overflow: "auto", marginBottom: 12 }}
+                    dataSource={chatMessages}
+                    locale={{ emptyText: "暂无消息" }}
+                    renderItem={(m) => (
+                        <List.Item>
+                            <Space direction="vertical" style={{ width: "100%" }}>
+                                <Space wrap>
+                                    <Text strong>{m?.user?.name || "?"}</Text>
+                                    <Text type="secondary">{m?.ts ? new Date(m.ts).toLocaleTimeString() : ""}</Text>
+                                </Space>
+                                <Text>{m?.content || ""}</Text>
+                            </Space>
+                        </List.Item>
+                    )}
+                />
+
+                <Space style={{ width: "100%" }}>
+                    <Input
+                        value={chatDraft}
+                        onChange={(e) => setChatDraft(e.target.value)}
+                        onPressEnter={() => {
+                            const text = chatDraft.trim();
+                            if (!text) return;
+                            wsSend({ type: "chat", payload: { roomId, content: text } });
+                            setChatDraft("");
+                        }}
+                        placeholder="输入消息，回车发送"
+                    />
+                    <Button
+                        type="primary"
+                        onClick={() => {
+                            const text = chatDraft.trim();
+                            if (!text) return;
+                            wsSend({ type: "chat", payload: { roomId, content: text } });
+                            setChatDraft("");
+                        }}
+                    >
+                        发送
+                    </Button>
+                </Space>
+            </Card>
+
+            <div style={{ height: 16 }} />
+
+            <Card title="Pomodoro 记录（GET /api/rooms/{id}/pomodoros）" loading={loadingPomodoros}>
+                <List
+                    dataSource={pomodoros}
+                    locale={{ emptyText: "暂无记录" }}
+                    renderItem={(p) => (
+                        <List.Item>
+                            <Space wrap>
+                                <Tag color={p.result === "SUCCESS" ? "green" : "red"}>{p.result}</Tag>
+                                <Text>duration: {p.durationMinutes}min</Text>
+                                <Text type="secondary">coins: {p.awardedCoins ?? 0}</Text>
+                                <Text type="secondary">at: {p.createdAt ? String(p.createdAt) : ""}</Text>
+                            </Space>
+                        </List.Item>
+                    )}
+                />
+            </Card>
         </div>
-    </div>
-  );
+    );
 }

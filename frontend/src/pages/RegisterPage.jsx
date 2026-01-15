@@ -3,6 +3,8 @@ import React, { useState, useEffect } from 'react';
 import { Card, Form, Input, Button, Typography, Space, message } from 'antd';
 import { UserOutlined, LockOutlined, ReadOutlined, LaptopOutlined, CoffeeOutlined, EditOutlined, SafetyCertificateOutlined } from '@ant-design/icons';
 import { Link, useNavigate } from 'react-router-dom';
+import classroomBg from '../assets/classroom.png';
+import { register } from '../api/system';
 
 const { Title } = Typography;
 
@@ -10,6 +12,7 @@ export default function RegisterPage() {
   const navigate = useNavigate();
   const [form] = Form.useForm();
   const [submittable, setSubmittable] = useState(false);
+  const [loading, setLoading] = useState(false);
 
   // Watch all values to control button state
   const values = Form.useWatch([], form);
@@ -23,35 +26,59 @@ export default function RegisterPage() {
       );
   }, [values, form]);
 
-  const onFinish = (values) => {
-    console.log('Register values:', values);
-    // Simulate registration
-    message.success("注册成功！即将跳转至登录页");
-    setTimeout(() => {
-        navigate('/login');
-    }, 3000);
+  const onFinish = async (values) => {
+    setLoading(true);
+    try {
+        await register(values);
+        message.success("注册成功！即将跳转至登录页");
+        setTimeout(() => {
+            navigate('/login');
+        }, 1000);
+    } catch (e) {
+      message.error("注册失败: " + (e.message || "请稍后重试"));
+    } finally {
+        setLoading(false);
+    }
   };
 
   return (
     <div style={{
+      position: 'relative',
       height: '100vh',
       width: '100vw',
-      background: 'linear-gradient(135deg, #1890ff 0%, #001529 100%)',
       display: 'flex',
       justifyContent: 'center',
       alignItems: 'center',
-      padding: '20px'
+      overflow: 'hidden'
     }}>
+      {/* Background Image with Blur */}
+      <div style={{
+          position: 'absolute',
+          top: 0, left: 0, right: 0, bottom: 0,
+          backgroundImage: `url(${classroomBg})`,
+          backgroundSize: 'cover',
+          backgroundPosition: 'center',
+          filter: 'blur(8px)',
+          zIndex: 0,
+      }} />
+      <div style={{
+          position: 'absolute',
+          top: 0, left: 0, right: 0, bottom: 0,
+          backgroundColor: 'rgba(0,0,0,0.2)',
+          zIndex: 1,
+      }} />
+
       <div style={{
         width: '60%',
         maxWidth: '900px',
         minWidth: '600px',
-        backgroundColor: 'rgba(24, 144, 255, 0.8)',
+        backgroundColor: 'rgba(24, 144, 255, 0.85)',
         borderRadius: '16px',
+        position: 'relative',
+        zIndex: 2,
         display: 'flex',
         overflow: 'hidden',
-        boxShadow: '0 8px 32px rgba(0, 0, 0, 0.3)',
-        position: 'relative'
+        boxShadow: '0 8px 32px rgba(0, 0, 0, 0.3)'
       }}>
          <div style={{ position: 'absolute', top: 20, right: 30, zIndex: 1 }}>
           <Title level={3} style={{ color: 'white', margin: 0 }}>多人实时在线自习室 - 注册</Title>

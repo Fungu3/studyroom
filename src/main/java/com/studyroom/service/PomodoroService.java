@@ -6,8 +6,10 @@ import com.studyroom.dto.PomodoroResponse;
 import com.studyroom.entity.CoinTransaction;
 import com.studyroom.entity.Pomodoro;
 import com.studyroom.entity.PomodoroResult;
+import com.studyroom.entity.User;
 import com.studyroom.repository.CoinTransactionRepository;
 import com.studyroom.repository.PomodoroRepository;
+import com.studyroom.repository.UserRepository;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -22,24 +24,35 @@ public class PomodoroService {
     private final PomodoroRepository pomodoroRepository;
     private final CoinTransactionRepository coinTransactionRepository;
     private final RoomService roomService;
+    private final UserRepository userRepository;
 
     public PomodoroService(PomodoroRepository pomodoroRepository,
                            CoinTransactionRepository coinTransactionRepository,
-                           RoomService roomService) {
+                           RoomService roomService,
+                           UserRepository userRepository) {
         this.pomodoroRepository = pomodoroRepository;
         this.coinTransactionRepository = coinTransactionRepository;
         this.roomService = roomService;
+        this.userRepository = userRepository;
     }
 
     @Transactional
     public PomodoroResponse createPomodoro(Long roomId, CreatePomodoroRequest req) {
         // Ensure room exists
         roomService.getRoom(roomId);
+        
+        // Ensure user exists
+        User user = userRepository.findById(req.getUserId())
+                .orElseThrow(() -> new RuntimeException("User not found"));
 
         Pomodoro pomodoro = new Pomodoro();
         pomodoro.setRoomId(roomId);
+        pomodoro.setUserId(req.getUserId());
         pomodoro.setDurationMinutes(req.getDurationMinutes());
         pomodoro.setResult(req.getResult());
+        
+        // Update user study time
+        user.setTotalStudyTimeMinutes(user.getTotalStudyTimeMinutes() + req.getDurationMinutes());
         
         int coinsAwarded = 0;
         if (req.getResult() == PomodoroResult.SUCCESS) {
@@ -48,11 +61,17 @@ public class PomodoroService {
             
             CoinTransaction tx = new CoinTransaction();
             tx.setRoomId(roomId);
+            tx.setUserId(req.getUserId());
             tx.setDelta(coinsAwarded);
             tx.setReason("POMODORO_SUCCESS");
             
             coinTransactionRepository.save(tx);
+            
+            // Update user coins
+            user.setCoins(user.getCoins() + coinsAwarded);
         }
+        
+        userRepository.save(user); // Save updated user stats
         
         pomodoro.setAwardedCoins(coinsAwarded);
         Pomodoro saved = pomodoroRepository.save(pomodoro);
