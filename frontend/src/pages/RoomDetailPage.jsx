@@ -155,7 +155,12 @@ export default function RoomDetailPage() {
         if (!isRoomIdValid) return;
 
         const scheme = window.location.protocol === "https:" ? "wss" : "ws";
-        const wsUrl = `${scheme}://${window.location.host}/ws`;
+        const wsBaseEnv = (import.meta.env.VITE_WS_BASE || import.meta.env.VITE_API_BASE || "").trim();
+        const normalizedBase = wsBaseEnv.replace(/\/+$/, "");
+        const wsBase = normalizedBase
+            ? normalizedBase.replace(/^https:/i, "wss:").replace(/^http:/i, "ws:")
+            : `${scheme}://${window.location.host}`;
+        const wsUrl = `${wsBase}/ws`;
 
         setWsStatus("connecting");
         const ws = new WebSocket(wsUrl);
