@@ -1,8 +1,9 @@
 // frontend/src/api/http.js
 // 一个很轻量的 fetch 封装：统一 baseURL、JSON 解析、错误处理
 
-const BASE_URL = "";
+const BASE_URL = import.meta.env.VITE_API_BASE || "";
 // 为空表示“同域”，配合 Vite proxy：/api 会被转发到 http://localhost:8080/api
+// 生产环境可在 Vercel 中配置 VITE_API_BASE 指向后端公网地址
 
 async function request(path, options = {}) {
   const url = `${BASE_URL}${path}`;
