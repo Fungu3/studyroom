@@ -20,7 +20,9 @@ public class CorsConfig {
             "http://192.168.*.*:5173",
             "http://10.*.*.*:5173",
             "http://172.*.*.*:5173",
-            "https://studyroom-kappa.vercel.app"
+            "https://studyroom-kappa.vercel.app",
+            "https://studyroom-4qj6dpbq-fungu3s-projects.vercel.app",
+            "https://*.vercel.app"
           )
             .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS")
             .allowedHeaders("*")
