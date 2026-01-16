@@ -370,6 +370,7 @@ export default function RoomDetailPage() {
     const transparentCardStyle = {
         background: "transparent",
         borderColor: "rgba(255, 255, 255, 0.35)",
+        opacity: 0.5,
     };
 
     const scrollBodyStyle = (height) => ({
