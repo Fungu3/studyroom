@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Form, Input, DatePicker, InputNumber, Button, message, Typography, Card } from 'antd';
 import { useNavigate } from 'react-router-dom';
 import { createRoom } from '../api/rooms';
-import skyBg from "../assets/sky.jpg";
+import skyBg from "../assets/sky.png";
 import dayjs from 'dayjs';
 
 const { Title } = Typography;
