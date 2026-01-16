@@ -14,7 +14,7 @@ public class CoinTransaction {
     @Column(nullable = false)
     private Long roomId;
 
-    @Column(nullable = false)
+    @Column(name = "user_id", nullable = false)
     private Long userId;
 
     @Column(nullable = false)
@@ -23,7 +23,7 @@ public class CoinTransaction {
     @Column(nullable = false)
     private String reason; // e.g. "POMODORO_SUCCESS"
 
-    @Column(nullable = false)
+    @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt;
 
     @PrePersist

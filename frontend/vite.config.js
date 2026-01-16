@@ -8,8 +8,12 @@ export default defineConfig({
       '/health': 'http://localhost:8080',
       '/api': 'http://localhost:8080',
       '/ws': {
-        target: 'ws://localhost:8080',
+        target: 'http://localhost:8080',
         ws: true,
+        changeOrigin: true,
+        secure: false,
+        timeout: 30000,
+        proxyTimeout: 30000,
       },
     },
   },

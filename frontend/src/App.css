@@ -43,3 +43,28 @@
 .read-the-docs {
   color: #888;
 }
+
+.header-nav-btn {
+  border: 1px solid transparent;
+  border-radius: 4px;
+  box-shadow: none !important;
+}
+
+.header-nav-btn:focus,
+.header-nav-btn:focus-visible,
+.header-nav-btn:active {
+  box-shadow: none !important;
+  outline: none;
+}
+
+.header-nav-btn.header-nav-btn--active {
+  background: #1677ff;
+  border-color: #1677ff;
+  color: #fff;
+}
+
+.header-nav-btn.header-nav-btn--inactive {
+  background: transparent;
+  border-color: rgba(255, 255, 255, 0.35);
+  color: rgba(255, 255, 255, 0.75);
+}

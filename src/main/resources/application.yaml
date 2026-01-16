@@ -30,3 +30,7 @@ spring:
     console:
       enabled: true
       path: /h2
+
+  sql:
+    init:
+      mode: always

@@ -1,0 +1,10 @@
+CREATE TABLE IF NOT EXISTS coin_transactions (
+	id BIGINT AUTO_INCREMENT PRIMARY KEY,
+	room_id BIGINT NOT NULL,
+	user_id BIGINT,
+	delta INT NOT NULL,
+	reason VARCHAR(255) NOT NULL,
+	created_at TIMESTAMP NOT NULL
+);
+
+ALTER TABLE coin_transactions ADD COLUMN IF NOT EXISTS user_id BIGINT;
