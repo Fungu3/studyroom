@@ -1,6 +1,23 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useParams } from "react-router-dom";
-import { Card, Button, Space, Tag, Typography, message, Divider, List, Input } from "antd";
+import {
+    Card,
+    Button,
+    Space,
+    Tag,
+    Typography,
+    message,
+    Divider,
+    List,
+    Input,
+    Row,
+    Col,
+    Modal,
+    Form,
+    InputNumber,
+    Avatar,
+    Tooltip,
+} from "antd";
 
 import { getRoom, createPomodoro, listPomodoros, getCoins } from "../api/rooms";
 import PomodoroTimer from "../components/PomodoroTimer";
@@ -39,11 +56,21 @@ export default function RoomDetailPage() {
     const [chatDraft, setChatDraft] = useState("");
     const [chatMessages, setChatMessages] = useState([]);
 
+    const [taskModalOpen, setTaskModalOpen] = useState(false);
+    const [tasks, setTasks] = useState([]);
+    const [activeTaskId, setActiveTaskId] = useState(null);
+    const taskTimerRef = useRef(null);
+    const [taskForm] = Form.useForm();
+
+    const [pomodoroMinutes, setPomodoroMinutes] = useState(25);
+    const [nowText, setNowText] = useState("");
+
+    const avatarStripRef = useRef(null);
+
     const [room, setRoom] = useState(null);
     const [loadingRoom, setLoadingRoom] = useState(false);
 
     const [coins, setCoins] = useState(null);
-    const [loadingCoins, setLoadingCoins] = useState(false);
 
     const [pomodoros, setPomodoros] = useState([]);
     const [loadingPomodoros, setLoadingPomodoros] = useState(false);
@@ -62,15 +89,12 @@ export default function RoomDetailPage() {
     };
 
     const refreshCoins = async () => {
-        setLoadingCoins(true);
         try {
             const data = await getCoins(roomId);
             setCoins(data);
         } catch (e) {
             console.error(e);
             message.error(`获取 coins 失败：${e.message}`);
-        } finally {
-            setLoadingCoins(false);
         }
     };
 
@@ -94,6 +118,20 @@ export default function RoomDetailPage() {
         refreshPomodoros();
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [roomId, isRoomIdValid]);
+
+    useEffect(() => {
+        const tick = () => {
+            const now = new Date();
+            const text = now.toLocaleString("zh-CN", {
+                timeZone: "Asia/Shanghai",
+                hour12: false,
+            });
+            setNowText(text);
+        };
+        tick();
+        const id = setInterval(tick, 1000);
+        return () => clearInterval(id);
+    }, []);
 
     const persistUser = (next) => {
         setUser(next);
@@ -197,6 +235,44 @@ export default function RoomDetailPage() {
         };
     }, [roomId, isRoomIdValid]);
 
+    useEffect(() => {
+        if (!activeTaskId) {
+            if (taskTimerRef.current) {
+                clearInterval(taskTimerRef.current);
+                taskTimerRef.current = null;
+            }
+            return;
+        }
+
+        if (taskTimerRef.current) {
+            clearInterval(taskTimerRef.current);
+            taskTimerRef.current = null;
+        }
+
+        taskTimerRef.current = setInterval(() => {
+            setTasks((prev) => prev.map((t) => {
+                if (t.id !== activeTaskId) return t;
+                const baseSeconds = Number.isFinite(t.remainingSec)
+                    ? t.remainingSec
+                    : Math.max(1, t.minutes) * 60;
+                const nextSeconds = Math.max(0, baseSeconds - 1);
+                if (nextSeconds === 0) {
+                    message.success(`任务「${t.title}」已到时`);
+                    setActiveTaskId(null);
+                    return { ...t, remainingSec: 0, status: "timeout" };
+                }
+                return { ...t, remainingSec: nextSeconds, status: "running" };
+            }));
+        }, 1000);
+
+        return () => {
+            if (taskTimerRef.current) {
+                clearInterval(taskTimerRef.current);
+                taskTimerRef.current = null;
+            }
+        };
+    }, [activeTaskId]);
+
     const submitPomodoro = async (result) => {
         const numericUserId = Number(user?.id);
         if (!Number.isFinite(numericUserId) || numericUserId <= 0) {
@@ -214,8 +290,80 @@ export default function RoomDetailPage() {
         }
     };
 
+    const formatSeconds = (seconds) => {
+        const safe = Math.max(0, Number(seconds) || 0);
+        const mm = Math.floor(safe / 60);
+        const ss = safe % 60;
+        return `${String(mm).padStart(2, "0")}:${String(ss).padStart(2, "0")}`;
+    };
+
+    const openTaskModal = () => {
+        taskForm.resetFields();
+        setTaskModalOpen(true);
+    };
+
+    const handleAddTask = async () => {
+        const values = await taskForm.validateFields();
+        const newTask = {
+            id: `${Date.now()}-${Math.random().toString(16).slice(2)}`,
+            title: values.title.trim(),
+            minutes: values.minutes,
+            status: "idle",
+            remainingSec: values.minutes * 60,
+        };
+        setTasks((prev) => [newTask, ...prev]);
+        setTaskModalOpen(false);
+    };
+
+    const startTask = (taskId) => {
+        setTasks((prev) => prev.map((t) => {
+            if (t.id === taskId) {
+                return {
+                    ...t,
+                    status: "running",
+                    remainingSec: Number.isFinite(t.remainingSec)
+                        ? t.remainingSec
+                        : Math.max(1, t.minutes) * 60,
+                };
+            }
+            if (t.status === "running") {
+                return { ...t, status: "paused" };
+            }
+            return t;
+        }));
+        setActiveTaskId(taskId);
+    };
+
+    const completeTask = (taskId) => {
+        setTasks((prev) => prev.map((t) => (
+            t.id === taskId
+                ? { ...t, status: "completed", remainingSec: 0 }
+                : t
+        )));
+        if (activeTaskId === taskId) setActiveTaskId(null);
+        message.success("任务已完成");
+    };
+
+    const stopTask = (taskId) => {
+        setTasks((prev) => prev.map((t) => (
+            t.id === taskId ? { ...t, status: "paused" } : t
+        )));
+        if (activeTaskId === taskId) setActiveTaskId(null);
+    };
+
+    const completedTaskCount = tasks.filter((t) => t.status === "completed").length;
+    const studyMinutesFromPomodoro = pomodoros.reduce((acc, item) => {
+        const minutes = Number(item?.durationMinutes) || 0;
+        return acc + minutes;
+    }, 0);
+
+    const avatars = members.length > 0
+        ? members
+        : [{ id: "local", name: user.name || "你" }];
+
     return (
-        <div style={{ maxWidth: 900, margin: "40px auto", padding: 16 }}>
+        <>
+        <div style={{ maxWidth: 1240, margin: "32px auto", padding: 16 }}>
             <Space style={{ marginBottom: 12 }}>
                 <Link to="/rooms">
                     <Button>返回列表</Button>
@@ -225,37 +373,259 @@ export default function RoomDetailPage() {
                 </Button>
             </Space>
 
-            <Card title={`房间详情（GET /api/rooms/${roomId}）`} loading={loadingRoom}>
-                {room ? (
-                    <Space direction="vertical" style={{ width: "100%" }}>
+            <Card loading={loadingRoom}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                    <Space direction="vertical" size={4}>
+                        <Text strong style={{ fontSize: 20 }}>{room?.title || "自习室"}</Text>
                         <Space wrap>
-                            <Text strong style={{ fontSize: 18 }}>{room.title}</Text>
-                            <Tag>{room.subject}</Tag>
-                            <Tag color="blue">ID: {room.id}</Tag>
+                            <Tag>{room?.subject || "未分类"}</Tag>
+                            <Tag color="blue">ID: {room?.id ?? roomId}</Tag>
                         </Space>
-                        <Text type="secondary">{room.description || "（无描述）"}</Text>
-                        <Text type="secondary">创建时间：{room.createdAt ? String(room.createdAt) : ""}</Text>
                     </Space>
-                ) : (
-                    <Text type="secondary">
-                        {isRoomIdValid ? "房间不存在或加载失败" : "房间编号无效"}
-                    </Text>
-                )}
-            </Card>
-
-            <div style={{ height: 16 }} />
-
-            <Card
-                title="实时在线（WebSocket /ws）"
-                extra={
                     <Space wrap>
                         <Tag color={wsStatus === "connected" ? "green" : wsStatus === "connecting" ? "gold" : "default"}>
                             WS: {wsStatus}
                         </Tag>
-                        <Tag color="blue">在线：{members.length}</Tag>
+                        <Tag color="blue">房间人数：{members.length}</Tag>
                     </Space>
-                }
-            >
+                </div>
+            </Card>
+
+            <div style={{ height: 16 }} />
+
+            <Row gutter={[16, 16]}>
+                <Col xs={24} md={7}>
+                    <Card
+                        title="学习任务待办"
+                        extra={<Button type="primary" onClick={openTaskModal}>+ 添加</Button>}
+                    >
+                        <List
+                            dataSource={tasks}
+                            locale={{ emptyText: "暂无任务" }}
+                            renderItem={(task) => (
+                                <List.Item>
+                                    <Space direction="vertical" style={{ width: "100%" }}>
+                                        <Space wrap>
+                                            <Text strong>{task.title}</Text>
+                                            <Tag>{task.minutes} 分钟</Tag>
+                                            <Tag color={task.status === "completed" ? "green" : task.status === "running" ? "blue" : task.status === "timeout" ? "red" : "default"}>
+                                                {task.status === "completed" ? "已完成" : task.status === "running" ? "计时中" : task.status === "timeout" ? "已到时" : task.status === "paused" ? "已暂停" : "待开始"}
+                                            </Tag>
+                                        </Space>
+                                        <Space wrap>
+                                            <Text type="secondary">剩余：{formatSeconds(task.remainingSec)}</Text>
+                                        </Space>
+                                        <Space wrap>
+                                            <Button type="primary" disabled={task.status === "completed"} onClick={() => startTask(task.id)}>开始</Button>
+                                            <Button disabled={task.status !== "running"} onClick={() => stopTask(task.id)}>暂停</Button>
+                                            <Button disabled={task.status === "completed"} onClick={() => completeTask(task.id)}>完成</Button>
+                                        </Space>
+                                    </Space>
+                                </List.Item>
+                            )}
+                        />
+                    </Card>
+                </Col>
+
+                <Col xs={24} md={10}>
+                    <Card title="俯视角虚拟形象转轮" bodyStyle={{ padding: 12 }}>
+                        <div
+                            style={{
+                                height: 220,
+                                borderRadius: 12,
+                                background: "#f6f7fb",
+                                position: "relative",
+                                display: "flex",
+                                alignItems: "center",
+                                justifyContent: "center",
+                                overflow: "hidden",
+                            }}
+                        >
+                            <div style={{ position: "absolute", inset: 0, opacity: 0.35, background: "linear-gradient(135deg,#e4e9ff,#ffffff)" }} />
+                            <Text type="secondary" style={{ position: "absolute", top: 10, left: 12 }}>背景图由我自行添加</Text>
+                            <div style={{ width: "100%", display: "flex", alignItems: "center", gap: 8, padding: "0 8px", position: "relative" }}>
+                                <Button
+                                    onClick={() => avatarStripRef.current?.scrollBy({ left: -140, behavior: "smooth" })}
+                                >
+                                    左滑
+                                </Button>
+                                <div
+                                    ref={avatarStripRef}
+                                    style={{
+                                        display: "flex",
+                                        gap: 12,
+                                        overflowX: "auto",
+                                        padding: "8px 4px",
+                                        scrollbarWidth: "none",
+                                        flex: 1,
+                                    }}
+                                >
+                                    {avatars.map((m) => (
+                                        <Tooltip key={m.id} title={m.name}>
+                                            <div style={{ textAlign: "center" }}>
+                                                <Avatar size={64} style={{ backgroundColor: m.id === user.id ? "#722ed1" : "#1677ff" }}>
+                                                    {String(m.name || "?").slice(0, 1).toUpperCase()}
+                                                </Avatar>
+                                                <div style={{ fontSize: 12, marginTop: 6 }}>{m.name || m.id}</div>
+                                            </div>
+                                        </Tooltip>
+                                    ))}
+                                </div>
+                                <Button
+                                    onClick={() => avatarStripRef.current?.scrollBy({ left: 140, behavior: "smooth" })}
+                                >
+                                    右滑
+                                </Button>
+                            </div>
+                        </div>
+                    </Card>
+                </Col>
+
+                <Col xs={24} md={7}>
+                    <Card title="房间聊天">
+                        <List
+                            size="small"
+                            style={{ maxHeight: 220, overflow: "auto", marginBottom: 12 }}
+                            dataSource={chatMessages}
+                            locale={{ emptyText: "暂无消息" }}
+                            renderItem={(m) => (
+                                <List.Item>
+                                    <Space direction="vertical" style={{ width: "100%" }}>
+                                        <Space wrap>
+                                            <Text strong>{m?.user?.name || "?"}</Text>
+                                            <Text type="secondary">{m?.ts ? new Date(m.ts).toLocaleTimeString() : ""}</Text>
+                                        </Space>
+                                        <Text>{m?.content || ""}</Text>
+                                    </Space>
+                                </List.Item>
+                            )}
+                        />
+
+                        <Space style={{ width: "100%" }}>
+                            <Input
+                                value={chatDraft}
+                                onChange={(e) => setChatDraft(e.target.value)}
+                                onPressEnter={() => {
+                                    const text = chatDraft.trim();
+                                    if (!text) return;
+                                    wsSend({ type: "chat", payload: { roomId, content: text } });
+                                    setChatDraft("");
+                                }}
+                                placeholder="输入消息，回车发送"
+                            />
+                            <Button
+                                type="primary"
+                                onClick={() => {
+                                    const text = chatDraft.trim();
+                                    if (!text) return;
+                                    wsSend({ type: "chat", payload: { roomId, content: text } });
+                                    setChatDraft("");
+                                }}
+                            >
+                                发送
+                            </Button>
+                        </Space>
+                    </Card>
+                </Col>
+            </Row>
+
+            <div style={{ height: 16 }} />
+
+            <Row gutter={[16, 16]}>
+                <Col xs={24} md={7}>
+                    <Card title="用户植物">
+                        <div
+                            style={{
+                                height: 180,
+                                borderRadius: 12,
+                                background: "#f0f7f2",
+                                display: "flex",
+                                alignItems: "center",
+                                justifyContent: "center",
+                                position: "relative",
+                            }}
+                        >
+                            <Text type="secondary">植物图标由我自行添加</Text>
+                        </div>
+                    </Card>
+                </Col>
+
+                <Col xs={24} md={10}>
+                    <Card title="自习室信息栏">
+                        <Row gutter={[12, 12]}>
+                            <Col xs={24} sm={8}>
+                                <Card size="small">
+                                    <Text type="secondary">自习时长</Text>
+                                    <div style={{ fontSize: 20, fontWeight: 600 }}>{studyMinutesFromPomodoro} 分钟</div>
+                                </Card>
+                            </Col>
+                            <Col xs={24} sm={8}>
+                                <Card size="small">
+                                    <Text type="secondary">完成任务</Text>
+                                    <div style={{ fontSize: 20, fontWeight: 600 }}>{completedTaskCount} 个</div>
+                                </Card>
+                            </Col>
+                            <Col xs={24} sm={8}>
+                                <Card size="small">
+                                    <Text type="secondary">获得金币</Text>
+                                    <div style={{ fontSize: 20, fontWeight: 600 }}>{coins?.totalCoins ?? 0}</div>
+                                </Card>
+                            </Col>
+                        </Row>
+                        <Divider style={{ margin: "12px 0" }} />
+                        <Space wrap>
+                            <Tag color="gold">Last: {coins?.lastTransactionAt ? String(coins.lastTransactionAt) : "-"}</Tag>
+                            <Tag>任务总数：{tasks.length}</Tag>
+                        </Space>
+                    </Card>
+                </Col>
+
+                <Col xs={24} md={7}>
+                    <Card title="时间显示与番茄钟">
+                        <Space direction="vertical" style={{ width: "100%" }}>
+                            <Card size="small">
+                                <Text type="secondary">北京时间</Text>
+                                <div style={{ fontSize: 16, fontWeight: 600 }}>{nowText || "--"}</div>
+                            </Card>
+                            <Card size="small" bodyStyle={{ padding: 12 }}>
+                                <Space wrap align="center">
+                                    <Text>番茄钟时长</Text>
+                                    <InputNumber
+                                        min={1}
+                                        max={180}
+                                        value={pomodoroMinutes}
+                                        onChange={(value) => setPomodoroMinutes(value || 1)}
+                                    />
+                                    <Text type="secondary">分钟</Text>
+                                </Space>
+                                <div style={{ height: 8 }} />
+                                <PomodoroTimer
+                                    initialMinutes={pomodoroMinutes}
+                                    onComplete={() => {
+                                        message.info("计时完成：可点 SUCCESS / FAIL 记录到后端");
+                                        wsSend({ type: "timerStatus", payload: { status: "idle" } });
+                                    }}
+                                    onStart={() => wsSend({ type: "timerStatus", payload: { status: "focusing" } })}
+                                    onStop={() => wsSend({ type: "timerStatus", payload: { status: "idle" } })}
+                                />
+                                <Divider style={{ margin: "12px 0" }} />
+                                <Space wrap>
+                                    <Button type="primary" onClick={() => submitPomodoro("SUCCESS")}>
+                                        完成 SUCCESS（记录 + 加币）
+                                    </Button>
+                                    <Button danger onClick={() => submitPomodoro("FAIL")}>
+                                        失败 FAIL（仅记录）
+                                    </Button>
+                                </Space>
+                            </Card>
+                        </Space>
+                    </Card>
+                </Col>
+            </Row>
+
+            <div style={{ height: 16 }} />
+
+            <Card title="在线成员" extra={<Text type="secondary">可修改昵称后刷新在线列表</Text>}>
                 <Space direction="vertical" style={{ width: "100%" }}>
                     <Space wrap align="center">
                         <span>你的昵称：</span>
@@ -294,94 +664,7 @@ export default function RoomDetailPage() {
 
             <div style={{ height: 16 }} />
 
-            <Card
-                title="Coins（GET /api/rooms/{id}/coins）"
-                loading={loadingCoins}
-                extra={
-                    coins ? (
-                        <Space wrap>
-                            <Tag color="gold">Total: {coins.totalCoins ?? 0}</Tag>
-                            <Tag>Last: {coins.lastTransactionAt ? String(coins.lastTransactionAt) : "-"}</Tag>
-                        </Space>
-                    ) : null
-                }
-            >
-                <Text type="secondary">完成一次 SUCCESS 默认 +5 coins（MVP 规则写死）。</Text>
-            </Card>
-
-            <div style={{ height: 16 }} />
-
-            <Card title="番茄钟（前端计时 + 后端记录）">
-                <PomodoroTimer
-                    initialMinutes={25}
-                    onComplete={() => {
-                        message.info("计时完成：可点 SUCCESS / FAIL 记录到后端");
-                        wsSend({ type: "timerStatus", payload: { status: "idle" } });
-                    }}
-                    onStart={() => wsSend({ type: "timerStatus", payload: { status: "focusing" } })}
-                    onStop={() => wsSend({ type: "timerStatus", payload: { status: "idle" } })}
-                />
-                <Divider />
-                <Space wrap>
-                    <Button type="primary" onClick={() => submitPomodoro("SUCCESS")}>\
-                        完成 SUCCESS（记录 + 加币）
-                    </Button>
-                    <Button danger onClick={() => submitPomodoro("FAIL")}>\
-                        失败 FAIL（仅记录）
-                    </Button>
-                </Space>
-            </Card>
-
-            <div style={{ height: 16 }} />
-
-            <Card title="房间聊天（WebSocket）" extra={<Text type="secondary">轻量 MVP：不存库，刷新会丢</Text>}>
-                <List
-                    size="small"
-                    style={{ maxHeight: 240, overflow: "auto", marginBottom: 12 }}
-                    dataSource={chatMessages}
-                    locale={{ emptyText: "暂无消息" }}
-                    renderItem={(m) => (
-                        <List.Item>
-                            <Space direction="vertical" style={{ width: "100%" }}>
-                                <Space wrap>
-                                    <Text strong>{m?.user?.name || "?"}</Text>
-                                    <Text type="secondary">{m?.ts ? new Date(m.ts).toLocaleTimeString() : ""}</Text>
-                                </Space>
-                                <Text>{m?.content || ""}</Text>
-                            </Space>
-                        </List.Item>
-                    )}
-                />
-
-                <Space style={{ width: "100%" }}>
-                    <Input
-                        value={chatDraft}
-                        onChange={(e) => setChatDraft(e.target.value)}
-                        onPressEnter={() => {
-                            const text = chatDraft.trim();
-                            if (!text) return;
-                            wsSend({ type: "chat", payload: { roomId, content: text } });
-                            setChatDraft("");
-                        }}
-                        placeholder="输入消息，回车发送"
-                    />
-                    <Button
-                        type="primary"
-                        onClick={() => {
-                            const text = chatDraft.trim();
-                            if (!text) return;
-                            wsSend({ type: "chat", payload: { roomId, content: text } });
-                            setChatDraft("");
-                        }}
-                    >
-                        发送
-                    </Button>
-                </Space>
-            </Card>
-
-            <div style={{ height: 16 }} />
-
-            <Card title="Pomodoro 记录（GET /api/rooms/{id}/pomodoros）" loading={loadingPomodoros}>
+            <Card title="Pomodoro 记录" loading={loadingPomodoros}>
                 <List
                     dataSource={pomodoros}
                     locale={{ emptyText: "暂无记录" }}
@@ -398,5 +681,36 @@ export default function RoomDetailPage() {
                 />
             </Card>
         </div>
+
+        <Modal
+            title="新增学习任务"
+            open={taskModalOpen}
+            onCancel={() => setTaskModalOpen(false)}
+            onOk={handleAddTask}
+            okText="保存"
+            cancelText="取消"
+        >
+            <Form
+                layout="vertical"
+                form={taskForm}
+                initialValues={{ title: "", minutes: 30 }}
+            >
+                <Form.Item
+                    label="任务名称"
+                    name="title"
+                    rules={[{ required: true, message: "请输入任务名称" }]}
+                >
+                    <Input placeholder="如：背单词" maxLength={40} />
+                </Form.Item>
+                <Form.Item
+                    label="规定用时（分钟）"
+                    name="minutes"
+                    rules={[{ required: true, message: "请输入用时" }]}
+                >
+                    <InputNumber min={1} max={240} style={{ width: "100%" }} />
+                </Form.Item>
+            </Form>
+        </Modal>
+        </>
     );
 }

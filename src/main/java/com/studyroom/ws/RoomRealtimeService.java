@@ -5,7 +5,6 @@ import org.springframework.web.socket.TextMessage;
 import org.springframework.web.socket.WebSocketSession;
 
 import java.io.IOException;
-import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
@@ -27,14 +26,12 @@ public class RoomRealtimeService {
         private volatile String name;
         private volatile String status; // focusing / idle
         private volatile int connections;
-        private volatile long lastActiveAt;
 
         private MemberState(String userId, String name) {
             this.userId = userId;
             this.name = name;
             this.status = "idle";
             this.connections = 0;
-            this.lastActiveAt = Instant.now().toEpochMilli();
         }
     }
 
@@ -62,7 +59,6 @@ public class RoomRealtimeService {
         MemberState ms = memberMap.computeIfAbsent(userId, uid -> new MemberState(uid, name));
         ms.name = name;
         ms.connections += 1;
-        ms.lastActiveAt = Instant.now().toEpochMilli();
 
         return new WsUser(userId, name);
     }
@@ -89,7 +85,6 @@ public class RoomRealtimeService {
             MemberState ms = memberMap.get(userId);
             if (ms != null) {
                 ms.connections = Math.max(0, ms.connections - 1);
-                ms.lastActiveAt = Instant.now().toEpochMilli();
                 if (ms.connections <= 0) {
                     memberMap.remove(userId);
                 }
@@ -122,7 +117,6 @@ public class RoomRealtimeService {
         MemberState ms = memberMap.get(ss.userId());
         if (ms == null) return;
         ms.status = normalized;
-        ms.lastActiveAt = Instant.now().toEpochMilli();
     }
 
     private static String normalizeStatus(String status) {
