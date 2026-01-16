@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Form, Input, DatePicker, InputNumber, Button, message, Typography, Card } from 'antd';
 import { useNavigate } from 'react-router-dom';
 import { createRoom } from '../api/rooms';
+import skyBg from "../assets/sky.jpg";
 import dayjs from 'dayjs';
 
 const { Title } = Typography;
@@ -36,7 +37,20 @@ export default function CreateRoomPage() {
       };
 
     return (
-        <div style={{ minHeight: 'calc(100vh - 64px)', width: '100%', padding: 24, background: '#f0f2f5', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <div
+            style={{
+                minHeight: 'calc(100vh - 64px)',
+                width: '100%',
+                padding: 24,
+                backgroundImage: `url(${skyBg})`,
+                backgroundSize: 'cover',
+                backgroundPosition: 'center',
+                backgroundRepeat: 'no-repeat',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center'
+            }}
+        >
             <Card style={{ width: '100%', maxWidth: 720 }} title={<Title level={3} style={{ margin: 0 }}>创建新自习室</Title>}>
                 <Form
                     form={form}

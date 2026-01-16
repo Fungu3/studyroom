@@ -3,6 +3,7 @@ import React, { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Card, Tag, Typography, message, Row, Col, Badge, Skeleton } from "antd";
 import { listRooms } from "../api/rooms";
+import skyBg from "../assets/sky.jpg";
 import { UserOutlined, ClockCircleOutlined } from '@ant-design/icons';
 
 const { Meta } = Card;
@@ -33,7 +34,16 @@ export default function RoomsPage() {
   const getRandomImage = (id) => `https://picsum.photos/seed/${id}/300/160`;
 
   return (
-    <div style={{ padding: '24px' }}>
+    <div
+      style={{
+        minHeight: 'calc(100vh - 64px)',
+        padding: '24px',
+        backgroundImage: `url(${skyBg})`,
+        backgroundSize: 'cover',
+        backgroundPosition: 'center',
+        backgroundRepeat: 'no-repeat',
+      }}
+    >
        {loading ? (
          <Skeleton active />
        ) : (

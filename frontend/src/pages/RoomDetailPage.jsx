@@ -21,6 +21,7 @@ import {
 
 import { getRoom, createPomodoro, listPomodoros, getCoins } from "../api/rooms";
 import PomodoroTimer from "../components/PomodoroTimer";
+import tabbleBg from "../assets/tabble.png";
 
 const { Text } = Typography;
 
@@ -366,9 +367,31 @@ export default function RoomDetailPage() {
         ? members
         : [{ id: "local", name: user.name || "你" }];
 
+    const transparentCardStyle = {
+        background: "transparent",
+        borderColor: "rgba(255, 255, 255, 0.35)",
+    };
+
+    const scrollBodyStyle = (height) => ({
+        height,
+        overflow: "auto",
+    });
+
     return (
         <>
-        <div style={{ maxWidth: 1240, margin: "32px auto", padding: 16 }}>
+        <div
+            style={{
+                minHeight: "100vh",
+                width: "100%",
+                backgroundImage: `url(${tabbleBg})`,
+                backgroundSize: "cover",
+                backgroundPosition: "center",
+                backgroundRepeat: "no-repeat",
+                backgroundAttachment: "fixed",
+                padding: 16,
+            }}
+        >
+        <div style={{ maxWidth: 1240, margin: "32px auto" }}>
             <Space style={{ marginBottom: 12 }}>
                 <Link to="/rooms">
                     <Button>返回列表</Button>
@@ -378,7 +401,7 @@ export default function RoomDetailPage() {
                 </Button>
             </Space>
 
-            <Card loading={loadingRoom}>
+            <Card loading={loadingRoom} style={{ ...transparentCardStyle }}>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                     <Space direction="vertical" size={4}>
                         <Text strong style={{ fontSize: 20 }}>{room?.title || "自习室"}</Text>
@@ -403,6 +426,8 @@ export default function RoomDetailPage() {
                     <Card
                         title="学习任务待办"
                         extra={<Button type="primary" onClick={openTaskModal}>+ 添加</Button>}
+                        style={{ ...transparentCardStyle, height: 360 }}
+                        bodyStyle={scrollBodyStyle(280)}
                     >
                         <List
                             dataSource={tasks}
@@ -433,12 +458,16 @@ export default function RoomDetailPage() {
                 </Col>
 
                 <Col xs={24} md={10}>
-                    <Card title="俯视角虚拟形象转轮" bodyStyle={{ padding: 12 }}>
+                    <Card
+                        title="虚拟形象"
+                        bodyStyle={{ padding: 12, ...scrollBodyStyle(240) }}
+                        style={{ ...transparentCardStyle, height: 300 }}
+                    >
                         <div
                             style={{
                                 height: 220,
                                 borderRadius: 12,
-                                background: "#f6f7fb",
+                                background: "transparent",
                                 position: "relative",
                                 display: "flex",
                                 alignItems: "center",
@@ -447,15 +476,15 @@ export default function RoomDetailPage() {
                             }}
                         >
                             <div style={{ position: "absolute", inset: 0, opacity: 0.35, background: "linear-gradient(135deg,#e4e9ff,#ffffff)" }} />
-                            <Text type="secondary" style={{ position: "absolute", top: 10, left: 12 }}>背景图由我自行添加</Text>
                             <div style={{ width: "100%", display: "flex", alignItems: "center", gap: 8, padding: "0 8px", position: "relative" }}>
-                                <Button
-                                    onClick={() => avatarStripRef.current?.scrollBy({ left: -140, behavior: "smooth" })}
-                                >
-                                    左滑
-                                </Button>
                                 <div
                                     ref={avatarStripRef}
+                                    onWheel={(e) => {
+                                        e.preventDefault();
+                                        const target = avatarStripRef.current;
+                                        if (!target) return;
+                                        target.scrollLeft += e.deltaY;
+                                    }}
                                     style={{
                                         display: "flex",
                                         gap: 12,
@@ -476,21 +505,16 @@ export default function RoomDetailPage() {
                                         </Tooltip>
                                     ))}
                                 </div>
-                                <Button
-                                    onClick={() => avatarStripRef.current?.scrollBy({ left: 140, behavior: "smooth" })}
-                                >
-                                    右滑
-                                </Button>
                             </div>
                         </div>
                     </Card>
                 </Col>
 
                 <Col xs={24} md={7}>
-                    <Card title="房间聊天">
+                    <Card title="房间聊天" style={{ ...transparentCardStyle, height: 360 }} bodyStyle={scrollBodyStyle(280)}>
                         <List
                             size="small"
-                            style={{ maxHeight: 220, overflow: "auto", marginBottom: 12 }}
+                            style={{ height: 200, overflow: "auto", marginBottom: 12 }}
                             dataSource={chatMessages}
                             locale={{ emptyText: "暂无消息" }}
                             renderItem={(m) => (
@@ -538,40 +562,39 @@ export default function RoomDetailPage() {
 
             <Row gutter={[16, 16]}>
                 <Col xs={24} md={7}>
-                    <Card title="用户植物">
+                    <Card title="植物" style={{ ...transparentCardStyle, height: 240 }} bodyStyle={scrollBodyStyle(180)}>
                         <div
                             style={{
                                 height: 180,
                                 borderRadius: 12,
-                                background: "#f0f7f2",
+                                background: "transparent",
                                 display: "flex",
                                 alignItems: "center",
                                 justifyContent: "center",
                                 position: "relative",
                             }}
                         >
-                            <Text type="secondary">植物图标由我自行添加</Text>
                         </div>
                     </Card>
                 </Col>
 
                 <Col xs={24} md={10}>
-                    <Card title="自习室信息栏">
+                    <Card style={{ ...transparentCardStyle, height: 240 }} bodyStyle={scrollBodyStyle(180)}>
                         <Row gutter={[12, 12]}>
                             <Col xs={24} sm={8}>
-                                <Card size="small">
+                                <Card size="small" style={{ ...transparentCardStyle }}>
                                     <Text type="secondary">自习时长</Text>
                                     <div style={{ fontSize: 20, fontWeight: 600 }}>{studyMinutesFromPomodoro} 分钟</div>
                                 </Card>
                             </Col>
                             <Col xs={24} sm={8}>
-                                <Card size="small">
+                                <Card size="small" style={{ ...transparentCardStyle }}>
                                     <Text type="secondary">完成任务</Text>
                                     <div style={{ fontSize: 20, fontWeight: 600 }}>{completedTaskCount} 个</div>
                                 </Card>
                             </Col>
                             <Col xs={24} sm={8}>
-                                <Card size="small">
+                                <Card size="small" style={{ ...transparentCardStyle }}>
                                     <Text type="secondary">获得金币</Text>
                                     <div style={{ fontSize: 20, fontWeight: 600 }}>{coins?.totalCoins ?? 0}</div>
                                 </Card>
@@ -586,13 +609,13 @@ export default function RoomDetailPage() {
                 </Col>
 
                 <Col xs={24} md={7}>
-                    <Card title="时间显示与番茄钟">
+                    <Card title="时间显示与番茄钟" style={{ ...transparentCardStyle, height: 360 }} bodyStyle={scrollBodyStyle(300)}>
                         <Space direction="vertical" style={{ width: "100%" }}>
-                            <Card size="small">
+                            <Card size="small" style={{ ...transparentCardStyle }}>
                                 <Text type="secondary">北京时间</Text>
                                 <div style={{ fontSize: 16, fontWeight: 600 }}>{nowText || "--"}</div>
                             </Card>
-                            <Card size="small" bodyStyle={{ padding: 12 }}>
+                            <Card size="small" bodyStyle={{ padding: 12 }} style={{ ...transparentCardStyle }}>
                                 <Space wrap align="center">
                                     <Text>番茄钟时长</Text>
                                     <InputNumber
@@ -630,7 +653,12 @@ export default function RoomDetailPage() {
 
             <div style={{ height: 16 }} />
 
-            <Card title="在线成员" extra={<Text type="secondary">可修改昵称后刷新在线列表</Text>}>
+            <Card
+                title="在线成员"
+                extra={<Text type="secondary">可修改昵称后刷新在线列表</Text>}
+                style={{ ...transparentCardStyle, height: 320 }}
+                bodyStyle={scrollBodyStyle(260)}
+            >
                 <Space direction="vertical" style={{ width: "100%" }}>
                     <Space wrap align="center">
                         <span>你的昵称：</span>
@@ -669,7 +697,12 @@ export default function RoomDetailPage() {
 
             <div style={{ height: 16 }} />
 
-            <Card title="Pomodoro 记录" loading={loadingPomodoros}>
+            <Card
+                title="Pomodoro 记录"
+                loading={loadingPomodoros}
+                style={{ ...transparentCardStyle, height: 260 }}
+                bodyStyle={scrollBodyStyle(200)}
+            >
                 <List
                     dataSource={pomodoros}
                     locale={{ emptyText: "暂无记录" }}
@@ -685,6 +718,7 @@ export default function RoomDetailPage() {
                     )}
                 />
             </Card>
+        </div>
         </div>
 
         <Modal
