@@ -1,8 +1,8 @@
 package com.studyroom.controller;
 
 import com.studyroom.dto.*;
-import com.studyroom.entity.Note;
-import com.studyroom.entity.NoteComment;
+import com.studyroom.entity.Comment;
+import com.studyroom.entity.NoteShare;
 import com.studyroom.service.NoteService;
 import com.studyroom.service.PomodoroService;
 import jakarta.validation.Valid;
@@ -44,29 +44,29 @@ public class RoomActivityController {
     // --- Note Endpoints ---
 
     @GetMapping("/notes")
-    public List<Note> getNotes(@PathVariable Long roomId) {
-        return noteService.getNotesByRoom(roomId);
+    public List<NoteShare> getNotes(@PathVariable Long roomId) {
+        return noteService.getRoomNotes(roomId);
     }
 
     @PostMapping("/notes")
     @ResponseStatus(HttpStatus.CREATED)
-    public Note createNote(@PathVariable Long roomId, @Valid @RequestBody CreateNoteRequest req) {
-        return noteService.createNote(roomId, req.getUserId(), req.getTitle(), req.getContent(), req.getImage());
+    public NoteShare createNote(@PathVariable Long roomId, @Valid @RequestBody CreateNoteRequest req) {
+        return noteService.publishNoteShare(req.getUserId(), roomId, req.getTitle(), req.getContent(), req.getImage());
     }
 
     @PostMapping("/notes/{noteId}/collect")
-    public void collectNote(@PathVariable Long roomId, @PathVariable Long noteId, @RequestParam String userId) {
-        noteService.collectNote(noteId, userId);
+    public void collectNote(@PathVariable Long roomId, @PathVariable Long noteId, @RequestParam Long userId) {
+        noteService.collectNote(userId, noteId);
     }
 
     @PostMapping("/notes/{noteId}/comments")
     @ResponseStatus(HttpStatus.CREATED)
-    public NoteComment addComment(@PathVariable Long roomId, @PathVariable Long noteId, @Valid @RequestBody CreateCommentRequest req) {
-        return noteService.addComment(noteId, req.getUserId(), req.getContent(), req.getParentCommentId());
+    public Comment addComment(@PathVariable Long roomId, @PathVariable Long noteId, @Valid @RequestBody CreateCommentRequest req) {
+        return noteService.addComment(req.getUserId(), noteId, req.getContent(), req.getParentCommentId());
     }
 
     @PostMapping("/notes/comments/{commentId}/like")
-    public void likeComment(@PathVariable Long roomId, @PathVariable Long commentId, @RequestParam String userId) {
-        noteService.likeComment(commentId, userId);
+    public void likeComment(@PathVariable Long roomId, @PathVariable Long commentId, @RequestParam(required = false) Long userId) {
+        noteService.likeComment(commentId);
     }
 }

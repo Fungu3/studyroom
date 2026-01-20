@@ -28,16 +28,15 @@ public class DataInitializer implements CommandLineRunner {
     }
 
     private void initRooms() {
-        createRoom("测试1", "数学", "Capacity: 20");
-        createRoom("测试2", "英语", "Capacity: 20");
+        createRoom("测试1");
+        createRoom("测试2");
         System.out.println("Initialized rooms: 测试1, 测试2");
     }
 
-    private void createRoom(String title, String subject, String description) {
+    private void createRoom(String name) {
         Room room = new Room();
-        room.setTitle(title);
-        room.setSubject(subject);
-        room.setDescription(description);
+        room.setName(name);
+        room.setOnlineUsers(0);
         // CreatedAt is handled by @PrePersist
         roomRepository.save(room);
     }

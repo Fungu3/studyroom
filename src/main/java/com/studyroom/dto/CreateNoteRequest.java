@@ -5,7 +5,7 @@ import jakarta.validation.constraints.NotNull;
 
 public class CreateNoteRequest {
     @NotNull
-    private String userId;
+    private Long userId;
 
     @NotBlank
     private String title;
@@ -15,8 +15,8 @@ public class CreateNoteRequest {
     
     private String image;
 
-    public String getUserId() { return userId; }
-    public void setUserId(String userId) { this.userId = userId; }
+    public Long getUserId() { return userId; }
+    public void setUserId(Long userId) { this.userId = userId; }
     public String getTitle() { return title; }
     public void setTitle(String title) { this.title = title; }
     public String getContent() { return content; }
