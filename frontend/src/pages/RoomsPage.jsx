@@ -3,7 +3,7 @@ import React, { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Card, Tag, Typography, message, Row, Col, Badge, Skeleton } from "antd";
 import { listRooms } from "../api/rooms";
-import skyBg from "../assets/sky.jpg";
+import skyBg from "../assets/sky.png";
 import { UserOutlined, ClockCircleOutlined } from '@ant-design/icons';
 
 const { Meta } = Card;

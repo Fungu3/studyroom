@@ -1,0 +1,272 @@
+
+/* Morandi Color Palette & Theme Variables */
+:root {
+  --morandi-bg: #EAEAEA;
+  --morandi-card-bg: #FFFFFF;
+  --morandi-text-primary: #5F6368;
+  --morandi-text-secondary: #8C8C8C;
+  --morandi-accent-blue: #93A9D1; /* Serenity */
+  --morandi-accent-green: #95B46A; /* Greenery */
+  --morandi-accent-pink: #D4A5A5; /* Old Rose */
+  --morandi-hover: #F0F2F5;
+}
+
+.room-page {
+  width: 100vw;
+  height: 100vh;
+  background-color: #Fdfcf8; /* Warm light background */
+  overflow: hidden;
+  font-family: 'Helvetica Neue', Arial, sans-serif;
+  color: var(--morandi-text-primary);
+  display: flex;
+  flex-direction: column;
+}
+
+/* --- Top Navigation Bar --- */
+.top-nav {
+  height: 60px;
+  background-color: rgba(255, 255, 255, 0.9);
+  backdrop-filter: blur(10px);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 24px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  z-index: 100;
+}
+
+.nav-left, .nav-right {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  width: 200px; /* Helper to center the middle text */
+}
+
+.nav-right {
+  justify-content: flex-end;
+}
+
+.nav-center {
+  flex: 1;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.room-title {
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--morandi-text-primary);
+}
+
+.online-count {
+  font-size: 12px;
+  color: var(--morandi-text-secondary);
+}
+
+/* --- Main Visual Area --- */
+.main-area {
+  flex: 1;
+  display: flex;
+  position: relative;
+  overflow: hidden;
+}
+
+.immersive-zone {
+  flex: 1;
+  width: 100%;
+  height: 100%;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #fdfbfb 0%, #ebedee 100%); /* Subtle gradient placeholder */
+  background-size: cover;
+  background-position: center;
+  transition: width 0.3s ease;
+}
+
+/* Dynamic Background Effect (Simulated) */
+.immersive-zone::before {
+  content: "";
+  position: absolute;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: url('https://images.unsplash.com/photo-1505664194779-8beaceb93744?ixlib=rb-4.0.3&auto=format&fit=crop&w=1920&q=80') no-repeat center center;
+  background-size: cover;
+  opacity: 0.1; /* Very subtle texture */
+  pointer-events: none;
+}
+
+.timer-container {
+  text-align: center;
+  z-index: 1;
+}
+
+.timer-display {
+  font-size: 120px;
+  font-weight: 200;
+  color: var(--morandi-text-primary);
+  font-feature-settings: "tnum";
+  user-select: none;
+}
+
+.timer-breathing {
+  animation: breathe 4s ease-in-out infinite;
+}
+
+@keyframes breathe {
+  0%, 100% { opacity: 0.8; transform: scale(1); }
+  50% { opacity: 1; transform: scale(1.02); }
+}
+
+.study-stats {
+  margin-top: 24px;
+  display: flex;
+  gap: 32px;
+}
+
+.stat-item {
+  text-align: center;
+}
+
+.stat-value {
+  font-size: 24px;
+  font-weight: 600;
+  color: var(--morandi-accent-blue);
+}
+
+.stat-label {
+  font-size: 12px;
+  color: var(--morandi-text-secondary);
+}
+
+/* --- Todo List Panel --- */
+.todo-drawer-btn {
+  position: absolute;
+  bottom: 0;
+  width: 100%;
+  text-align: center;
+  padding: 8px;
+  background: rgba(255,255,255,0.6);
+  cursor: pointer;
+  z-index: 10;
+  transition: background 0.3s;
+}
+.todo-drawer-btn:hover {
+  background: rgba(255,255,255,0.9);
+}
+
+.todo-panel {
+  position: absolute;
+  bottom: 80px; /* Above control bar */
+  left: 50%;
+  transform: translateX(-50%);
+  width: 400px;
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(10px);
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+  padding: 16px;
+  max-height: 300px;
+  overflow-y: auto;
+  z-index: 20;
+}
+
+/* --- Right Sidebar --- */
+.right-sidebar {
+  height: 100%;
+  background: #FFFFFF;
+  border-left: 1px solid rgba(0,0,0,0.05);
+  display: flex;
+  transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: -2px 0 8px rgba(0,0,0,0.02);
+  z-index: 90;
+}
+
+.sidebar-icons {
+  width: 60px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding-top: 24px;
+  background: #F9F9F9;
+  border-right: 1px solid rgba(0,0,0,0.05);
+}
+
+.icon-btn {
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 12px;
+  margin-bottom: 16px;
+  cursor: pointer;
+  color: var(--morandi-text-secondary);
+  font-size: 20px;
+  transition: all 0.3s;
+}
+
+.icon-btn:hover, .icon-btn.active {
+  background: var(--morandi-accent-blue);
+  color: white;
+  box-shadow: 0 4px 10px rgba(147, 169, 209, 0.4);
+}
+
+.sidebar-content {
+  flex: 1;
+  overflow: hidden;
+  padding: 24px;
+  opacity: 0;
+  transition: opacity 0.2s;
+  background: #FFFFFF;
+}
+
+.sidebar-content.visible {
+  opacity: 1;
+}
+
+/* --- Bottom Floating Bar --- */
+/* (Removed floating-bar container) */
+
+/* Reused button styles for timer controls */
+.control-btn-circle {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  cursor: pointer;
+  transition: transform 0.2s, box-shadow 0.2s;
+  font-size: 20px;
+}
+
+.btn-start {
+  background: var(--morandi-accent-green);
+  color: white;
+}
+.btn-start:hover:not(:disabled) { box-shadow: 0 4px 12px rgba(149, 180, 106, 0.4); transform: scale(1.05); }
+
+.btn-pause {
+  background: var(--morandi-accent-pink);
+  color: white;
+}
+.btn-pause:hover:not(:disabled) { box-shadow: 0 4px 12px rgba(212, 165, 165, 0.4); transform: scale(1.05); }
+
+.btn-reset {
+  background: #F0F0F0;
+  color: var(--morandi-text-secondary);
+}
+.btn-reset:hover { background: #E0E0E0; }
+
+.btn-start.disabled, .btn-pause.disabled {
+    cursor: not-allowed;
+    opacity: 0.5;
+}
+
+/* Removed task-fab as it is now integrated into todo-drawer-btn */
+

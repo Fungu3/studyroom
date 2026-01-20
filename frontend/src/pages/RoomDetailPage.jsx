@@ -1,35 +1,59 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, useCallback } from "react";
 import { Link, useParams } from "react-router-dom";
 import {
-    Card,
+    Avatar,
     Button,
-    Space,
-    Tag,
-    Typography,
-    message,
-    Divider,
     List,
     Input,
-    Row,
-    Col,
+    message,
     Modal,
+    Typography,
+    Tooltip,
+    Badge,
+    Popover,
+    Drawer,
+    Statistic,
+    Space,
+    Tag,
     Form,
     InputNumber,
-    Avatar,
-    Tooltip,
+    Divider
 } from "antd";
+import {
+    UserOutlined,
+    ArrowLeftOutlined,
+    MessageOutlined,
+    TeamOutlined,
+    ExperimentOutlined,
+    BarChartOutlined,
+    PlayCircleFilled,
+    PauseCircleFilled,
+    ReloadOutlined,
+    PlusOutlined,
+    UpOutlined,
+    DownOutlined,
+    SettingOutlined,
+    CheckCircleOutlined
+} from "@ant-design/icons";
 
 import { getRoom, createPomodoro, listPomodoros, getCoins } from "../api/rooms";
-import PomodoroTimer from "../components/PomodoroTimer";
-import tabbleBg from "../assets/tabble.png";
+import "./RoomDetailPage.css";
 
-const { Text } = Typography;
+const { Text, Title } = Typography;
+
+const formatTime = (seconds) => {
+    const safe = Math.max(0, seconds);
+    const m = Math.floor(safe / 60);
+    const s = safe % 60;
+    return `${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
+};
 
 export default function RoomDetailPage() {
     const { id } = useParams();
     const roomId = useMemo(() => Number(id), [id]);
     const isRoomIdValid = Number.isFinite(roomId) && roomId > 0;
 
+    // --- User State ---
     const [user, setUser] = useState(() => {
         try {
             const raw = localStorage.getItem("studyroom_user");
@@ -42,116 +66,87 @@ export default function RoomDetailPage() {
                     };
                 }
             }
-        } catch {
-            // ignore
-        }
+        } catch {}
         const idPart = typeof crypto !== "undefined" && crypto.randomUUID
             ? crypto.randomUUID()
             : `${Date.now()}-${Math.random().toString(16).slice(2)}`;
         return { id: idPart, name: "游客" };
     });
 
-    const wsRef = useRef(null);
-    const [wsStatus, setWsStatus] = useState("disconnected");
-    const [members, setMembers] = useState([]);
-    const [chatDraft, setChatDraft] = useState("");
-    const [chatMessages, setChatMessages] = useState([]);
-
-    const [taskModalOpen, setTaskModalOpen] = useState(false);
-    const [tasks, setTasks] = useState([]);
-    const [activeTaskId, setActiveTaskId] = useState(null);
-    const taskTimerRef = useRef(null);
-    const [taskForm] = Form.useForm();
-
-    const [pomodoroMinutes, setPomodoroMinutes] = useState(25);
-    const [nowText, setNowText] = useState("");
-
-    const avatarStripRef = useRef(null);
-
-    const [room, setRoom] = useState(null);
-    const [loadingRoom, setLoadingRoom] = useState(false);
-
-    const [coins, setCoins] = useState(null);
-
-    const [pomodoros, setPomodoros] = useState([]);
-    const [loadingPomodoros, setLoadingPomodoros] = useState(false);
-
-    const refreshRoom = async () => {
-        setLoadingRoom(true);
-        try {
-            const data = await getRoom(roomId);
-            setRoom(data);
-        } catch (e) {
-            console.error(e);
-            message.error(`获取房间详情失败：${e.message}`);
-        } finally {
-            setLoadingRoom(false);
-        }
-    };
-
-    const refreshCoins = async () => {
-        try {
-            const data = await getCoins(roomId);
-            setCoins(data);
-        } catch (e) {
-            console.error(e);
-            message.error(`获取 coins 失败：${e.message}`);
-        }
-    };
-
-    const refreshPomodoros = async () => {
-        setLoadingPomodoros(true);
-        try {
-            const data = await listPomodoros(roomId);
-            setPomodoros(Array.isArray(data) ? data : []);
-        } catch (e) {
-            console.error(e);
-            message.error(`获取 pomodoro 列表失败：${e.message}`);
-        } finally {
-            setLoadingPomodoros(false);
-        }
-    };
-
-    useEffect(() => {
-        if (!isRoomIdValid) return;
-        refreshRoom();
-        refreshCoins();
-        refreshPomodoros();
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [roomId, isRoomIdValid]);
-
-    useEffect(() => {
-        const tick = () => {
-            const now = new Date();
-            const text = now.toLocaleString("zh-CN", {
-                timeZone: "Asia/Shanghai",
-                hour12: false,
-            });
-            setNowText(text);
-        };
-        tick();
-        const id = setInterval(tick, 1000);
-        return () => clearInterval(id);
-    }, []);
-
     const persistUser = (next) => {
         setUser(next);
         try {
             localStorage.setItem("studyroom_user", JSON.stringify(next));
-        } catch {
-            // ignore
-        }
+        } catch {}
     };
+
+    // --- Room Data State ---
+    const [room, setRoom] = useState(null);
+    const [members, setMembers] = useState([]);
+    const [coins, setCoins] = useState(null);
+    const [pomodoros, setPomodoros] = useState([]);
+    
+    // --- UI State ---
+    const [currentTime, setCurrentTime] = useState(new Date());
+    const [activeSidebar, setActiveSidebar] = useState(null); // 'chat', 'members', 'plants', 'records'
+    const [todoPanelOpen, setTodoPanelOpen] = useState(false);
+
+    // --- Pomodoro State ---
+    const [pomoStatus, setPomoStatus] = useState("idle"); // idle, running, paused
+    const [pomodoroMinutes, setPomodoroMinutes] = useState(25);
+    const [timeLeft, setTimeLeft] = useState(25 * 60);
+    const [completedCount, setCompletedCount] = useState(0);
+    const [totalStudyTime, setTotalStudyTime] = useState(0);
+    const timerRef = useRef(null);
+
+    // --- Task/Todo State ---
+    const [tasks, setTasks] = useState([]);
+    const [taskModalOpen, setTaskModalOpen] = useState(false);
+    const [taskForm] = Form.useForm();
+
+    // --- Chat State ---
+    const [chatMessages, setChatMessages] = useState([]);
+    const [chatInput, setChatInput] = useState("");
+
+    // --- WebSocket ---
+    const wsRef = useRef(null);
+    const [wsStatus, setWsStatus] = useState("disconnected");
 
     const wsSend = (msgObj) => {
         const ws = wsRef.current;
-        if (!ws || ws.readyState !== WebSocket.OPEN) {
-            message.warning("实时连接未就绪（WS 未连接）");
-            return;
-        }
+        if (!ws || ws.readyState !== WebSocket.OPEN) return;
         ws.send(JSON.stringify(msgObj));
     };
 
+    // --- Effects: Data Loading ---
+    const refreshAll = useCallback(async () => {
+        if (!isRoomIdValid) return;
+        try {
+            const r = await getRoom(roomId);
+            setRoom(r);
+            const c = await getCoins(roomId);
+            setCoins(c);
+            const p = await listPomodoros(roomId);
+            setPomodoros(Array.isArray(p) ? p : []);
+        } catch (e) {
+            console.error(e);
+        }
+    }, [roomId, isRoomIdValid]);
+
+    useEffect(() => {
+        const timer = setInterval(() => setCurrentTime(new Date()), 1000);
+        return () => clearInterval(timer);
+    }, []);
+
+    // Recalculate local stats from pomodoros
+    useEffect(() => {
+        const completed = pomodoros.filter(p => p.result === 'SUCCESS');
+        setCompletedCount(completed.length);
+        const mins = completed.reduce((acc, curr) => acc + (curr.durationMinutes || 0), 0);
+        setTotalStudyTime(mins);
+    }, [pomodoros]);
+
+    // --- Effects: WebSocket ---
     useEffect(() => {
         if (!isRoomIdValid) return;
 
@@ -169,588 +164,428 @@ export default function RoomDetailPage() {
 
         ws.onopen = () => {
             setWsStatus("connected");
-            ws.send(JSON.stringify({
-                type: "join",
-                payload: { roomId, user },
-            }));
+            ws.send(JSON.stringify({ type: "join", payload: { roomId, user } }));
         };
 
         ws.onmessage = (ev) => {
             let msgObj;
-            try {
-                msgObj = JSON.parse(ev.data);
-            } catch {
-                return;
-            }
+            try { msgObj = JSON.parse(ev.data); } catch { return; }
             const { type, payload } = msgObj || {};
             if (!type) return;
 
             if (type === "joined") {
-                const effective = payload?.user;
-                if (effective?.id && effective.id !== user.id) {
-                    persistUser({ ...user, id: String(effective.id) });
+                if (payload?.user?.id && payload.user.id !== user.id) {
+                    persistUser({ ...user, id: String(payload.user.id) });
                 }
-                return;
-            }
-
-            if (type === "roomMembersUpdate") {
+            } else if (type === "roomMembersUpdate") {
                 setMembers(Array.isArray(payload?.members) ? payload.members : []);
-                return;
-            }
-
-            if (type === "chatMessage") {
-                setChatMessages((prev) => {
-                    const next = [...prev, payload].filter(Boolean);
-                    return next.slice(-200);
-                });
-                return;
-            }
-
-            if (type === "timerStatus") {
-                const userId = payload?.userId;
-                const status = payload?.status;
-                if (!userId) return;
-                setMembers((prev) => prev.map((m) => (
-                    m?.id === userId ? { ...m, status: status || m.status } : m
-                )));
+            } else if (type === "chatMessage") {
+                setChatMessages((prev) => [...prev, payload].slice(-200));
+            } else if (type === "timerStatus") {
+                const { userId, status } = payload || {};
+                if (userId) {
+                    setMembers(prev => prev.map(m => m.id === userId ? { ...m, status } : m));
+                }
             }
         };
 
-        ws.onclose = () => {
-            setWsStatus("disconnected");
-        };
-
-        ws.onerror = () => {
-            setWsStatus("disconnected");
-        };
+        ws.onclose = () => setWsStatus("disconnected");
+        ws.onerror = () => setWsStatus("disconnected");
 
         return () => {
-            try {
-                if (ws.readyState === WebSocket.OPEN) {
-                    ws.send(JSON.stringify({ type: "leave", payload: {} }));
-                }
-            } catch {
-                // ignore
-            }
-            try {
-                ws.close();
-            } catch {
-                // ignore
-            }
+            if (ws.readyState === WebSocket.OPEN) ws.send(JSON.stringify({ type: "leave", payload: {} }));
+            ws.close();
             wsRef.current = null;
         };
-    }, [roomId, isRoomIdValid]);
+    }, [roomId, isRoomIdValid]); // eslint-disable-line
 
+    // --- Effects: Timer ---
     useEffect(() => {
-        if (!activeTaskId) {
-            if (taskTimerRef.current) {
-                clearInterval(taskTimerRef.current);
-                taskTimerRef.current = null;
-            }
-            return;
+        if (pomoStatus === "running") {
+            timerRef.current = setInterval(() => {
+                setTimeLeft((prev) => {
+                    if (prev <= 1) {
+                        handleCompleteTimer();
+                        return pomodoroMinutes * 60;
+                    }
+                    return prev - 1;
+                });
+            }, 1000);
+        } else {
+            clearInterval(timerRef.current);
         }
+        return () => clearInterval(timerRef.current);
+    }, [pomoStatus, pomodoroMinutes]);
 
-        if (taskTimerRef.current) {
-            clearInterval(taskTimerRef.current);
-            taskTimerRef.current = null;
-        }
+    const handleCompleteTimer = () => {
+        setPomoStatus("idle");
+        wsSend({ type: "timerStatus", payload: { status: "idle" } });
+        
+        // Auto-submit SUCCESS? Or ask user? The requirement implies "Controls" but let's just log it.
+        // For immersive mode, let's just complete it and show message.
+        message.success("专注周期结束！");
+        createPomodoro(roomId, { durationMinutes: pomodoroMinutes, result: "SUCCESS", userId: Number(user.id) })
+            .then(() => refreshAll())
+            .catch(e => console.error(e));
+    };
 
-        taskTimerRef.current = setInterval(() => {
-            setTasks((prev) => prev.map((t) => {
-                if (t.id !== activeTaskId) return t;
-                const baseSeconds = Number.isFinite(t.remainingSec)
-                    ? t.remainingSec
-                    : Math.max(1, t.minutes) * 60;
-                const nextSeconds = Math.max(0, baseSeconds - 1);
-                if (nextSeconds === 0) {
-                    message.success(`任务「${t.title}」已到时`);
-                    setActiveTaskId(null);
-                    return { ...t, remainingSec: 0, status: "timeout" };
-                }
-                return { ...t, remainingSec: nextSeconds, status: "running" };
-            }));
-        }, 1000);
-
-        return () => {
-            if (taskTimerRef.current) {
-                clearInterval(taskTimerRef.current);
-                taskTimerRef.current = null;
-            }
-        };
-    }, [activeTaskId]);
-
-    const submitPomodoro = async (result) => {
-        const numericUserId = Number(user?.id);
-        if (!Number.isFinite(numericUserId) || numericUserId <= 0) {
-            message.error("请先登录后再记录番茄钟");
-            return;
-        }
-        try {
-            const resp = await createPomodoro(roomId, { durationMinutes: 25, result, userId: numericUserId });
-            message.success(`记录成功：${result}，本次 +${resp.awardedCoins || 0} coins`);
-            await refreshCoins();
-            await refreshPomodoros();
-        } catch (e) {
-            console.error(e);
-            message.error(`记录失败：${e.message}`);
+    const toggleTimer = () => {
+        if (pomoStatus === "running") {
+            setPomoStatus("paused");
+            wsSend({ type: "timerStatus", payload: { status: "idle" } }); // or paused
+        } else {
+            setPomoStatus("running");
+            wsSend({ type: "timerStatus", payload: { status: "focusing" } });
         }
     };
 
-    const formatSeconds = (seconds) => {
-        const safe = Math.max(0, Number(seconds) || 0);
-        const mm = Math.floor(safe / 60);
-        const ss = safe % 60;
-        return `${String(mm).padStart(2, "0")}:${String(ss).padStart(2, "0")}`;
+    const resetTimer = () => {
+        setPomoStatus("idle");
+        setTimeLeft(pomodoroMinutes * 60);
+        wsSend({ type: "timerStatus", payload: { status: "idle" } });
     };
 
-    const openTaskModal = () => {
-        taskForm.resetFields();
-        setTaskModalOpen(true);
+    // --- Actions ---
+    const handleSendMessage = () => {
+        const text = chatInput.trim();
+        if (!text) return;
+        wsSend({ type: "chat", payload: { roomId, content: text } });
+        setChatInput("");
     };
 
     const handleAddTask = async () => {
         const values = await taskForm.validateFields();
         const newTask = {
-            id: `${Date.now()}-${Math.random().toString(16).slice(2)}`,
-            title: values.title.trim(),
-            minutes: values.minutes,
-            status: "idle",
-            remainingSec: values.minutes * 60,
+            id: Date.now(),
+            title: values.title,
+            done: false
         };
-        setTasks((prev) => [newTask, ...prev]);
+        setTasks([newTask, ...tasks]);
         setTaskModalOpen(false);
+        taskForm.resetFields();
     };
 
-    const startTask = (taskId) => {
-        setTasks((prev) => prev.map((t) => {
-            if (t.id === taskId) {
-                return {
-                    ...t,
-                    status: "running",
-                    remainingSec: Number.isFinite(t.remainingSec)
-                        ? t.remainingSec
-                        : Math.max(1, t.minutes) * 60,
-                };
-            }
-            if (t.status === "running") {
-                return { ...t, status: "paused" };
-            }
-            return t;
-        }));
-        setActiveTaskId(taskId);
+    const toggleTask = (id) => {
+        setTasks(tasks.map(t => t.id === id ? { ...t, done: !t.done } : t));
     };
 
-    const completeTask = (taskId) => {
-        setTasks((prev) => prev.map((t) => (
-            t.id === taskId
-                ? { ...t, status: "completed", remainingSec: 0 }
-                : t
-        )));
-        if (activeTaskId === taskId) setActiveTaskId(null);
-        message.success("任务已完成");
+    const toggleSidebar = (panel) => {
+        setActiveSidebar(activeSidebar === panel ? null : panel);
     };
 
-    const stopTask = (taskId) => {
-        setTasks((prev) => prev.map((t) => (
-            t.id === taskId ? { ...t, status: "paused" } : t
-        )));
-        if (activeTaskId === taskId) setActiveTaskId(null);
+    // --- Sub-renderers ---
+    const renderSidebarContent = () => {
+        switch (activeSidebar) {
+            case 'chat':
+                return (
+                    <div style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
+                        <Title level={5} style={{ marginBottom: 16 }}>💬 房间聊天</Title>
+                        <div style={{ flex: 1, overflowY: 'auto', marginBottom: 12 }}>
+                            <List
+                                dataSource={chatMessages}
+                                split={false}
+                                renderItem={m => (
+                                    <List.Item style={{ padding: '8px 0', border: 'none' }}>
+                                        <div style={{ width: '100%' }}>
+                                            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, color: '#999', marginBottom: 4 }}>
+                                                <span>{m?.user?.name || '未知'}</span>
+                                                <span>{m?.ts ? new Date(m.ts).toLocaleTimeString() : ''}</span>
+                                            </div>
+                                            <div style={{ 
+                                                background: m?.user?.id === user.id ? '#E6F7FF' : '#F5F5F5', 
+                                                padding: '8px 12px', 
+                                                borderRadius: 8,
+                                                display: 'inline-block' 
+                                            }}>
+                                                {m?.content}
+                                            </div>
+                                        </div>
+                                    </List.Item>
+                                )}
+                            />
+                        </div>
+                        <div style={{ display: 'flex', gap: 8 }}>
+                            <Input 
+                                value={chatInput} 
+                                onChange={e => setChatInput(e.target.value)} 
+                                onPressEnter={handleSendMessage}
+                                placeholder="说点什么..." 
+                            />
+                            <Button type="primary" icon={<MessageOutlined />} onClick={handleSendMessage} />
+                        </div>
+                    </div>
+                );
+            case 'members':
+                return (
+                    <div>
+                        <Title level={5} style={{ marginBottom: 16 }}>👥 在线成员</Title>
+                         <List
+                            dataSource={members}
+                            renderItem={m => (
+                                <List.Item>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', width: '100%', alignItems: 'center' }}>
+                                        <div style={{ display: 'flex', flexDirection: 'column' }}>
+                                             <Space>
+                                                <span style={{ fontWeight: 500 }}>{m.name}</span>
+                                                {m.id === user.id && <Tag color="purple">我</Tag>}
+                                             </Space>
+                                              <Tag color={m.status === 'focusing' ? 'green' : 'default'} style={{ width: 'fit-content', marginTop: 4 }}>
+                                                    {m.status === 'focusing' ? '专注中' : '休息中'}
+                                              </Tag>
+                                        </div>
+                                        {/* Avatar on the right */}
+                                        <Avatar size={32} style={{ backgroundColor: '#93A9D1' }}>{m.name?.[0]?.toUpperCase()}</Avatar>
+                                    </div>
+                                </List.Item>
+                            )}
+                        />
+                    </div>
+                );
+            case 'plants':
+                return (
+                    <div style={{ textAlign: 'center', paddingTop: 40 }}>
+                         <Title level={5}>🌱 我的植物</Title>
+                         <div style={{ fontSize: 80, color: '#95B46A', margin: '30px 0' }}>
+                             <ExperimentOutlined />
+                         </div>
+                         <Text>积累经验值: {coins?.totalCoins || 0}</Text>
+                         {/* A fake progress bar */}
+                         <div style={{ marginTop: 20 }}>
+                             <Tag color="cyan">Level 1</Tag>
+                             <div style={{ height: 6, background: '#eee', borderRadius: 3, marginTop: 8 }}>
+                                 <div style={{ width: '40%', height: '100%', background: '#95B46A', borderRadius: 3 }}></div>
+                             </div>
+                         </div>
+                    </div>
+                );
+            case 'records':
+                return (
+                    <div>
+                        <Title level={5} style={{ marginBottom: 16 }}>📊 专注记录</Title>
+                        <Space direction="vertical" style={{ width: '100%' }}>
+                            <Statistic title="累计时长" value={totalStudyTime} suffix="min" />
+                            <Statistic title="番茄钟数" value={completedCount} />
+                            <Divider />
+                            <Title level={5} style={{ fontSize: 14 }}>最近历史</Title>
+                            <div style={{ maxHeight: 300, overflowY: 'auto' }}>
+                                <List
+                                    size="small"
+                                    dataSource={pomodoros}
+                                    renderItem={p => (
+                                        <List.Item>
+                                            <Space>
+                                                <Tag color={p.result === 'SUCCESS' ? 'green' : 'red'}>{p.result}</Tag>
+                                                <span>{p.durationMinutes}min</span>
+                                            </Space>
+                                        </List.Item>
+                                    )}
+                                />
+                            </div>
+                        </Space>
+                    </div>
+                );
+            default: return null;
+        }
     };
-
-    const completedTaskCount = tasks.filter((t) => t.status === "completed").length;
-    const studyMinutesFromPomodoro = pomodoros.reduce((acc, item) => {
-        const minutes = Number(item?.durationMinutes) || 0;
-        return acc + minutes;
-    }, 0);
-
-    const avatars = members.length > 0
-        ? members
-        : [{ id: "local", name: user.name || "你" }];
-
-    const transparentCardStyle = {
-        background: "transparent",
-        borderColor: "rgba(255, 255, 255, 0.35)",
-        opacity: 0.5,
-    };
-
-    const scrollBodyStyle = (height) => ({
-        height,
-        overflow: "auto",
-    });
 
     return (
-        <>
-        <div
-            style={{
-                minHeight: "100vh",
-                width: "100%",
-                backgroundImage: `url(${tabbleBg})`,
-                backgroundSize: "cover",
-                backgroundPosition: "center",
-                backgroundRepeat: "no-repeat",
-                backgroundAttachment: "fixed",
-                padding: 16,
-            }}
-        >
-        <div style={{ maxWidth: 1240, margin: "32px auto" }}>
-            <Space style={{ marginBottom: 12 }}>
-                <Link to="/rooms">
-                    <Button>返回列表</Button>
-                </Link>
-                <Button onClick={() => { refreshRoom(); refreshCoins(); refreshPomodoros(); }}>
-                    刷新
-                </Button>
-            </Space>
-
-            <Card loading={loadingRoom} style={{ ...transparentCardStyle }}>
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                    <Space direction="vertical" size={4}>
-                        <Text strong style={{ fontSize: 20 }}>{room?.title || "自习室"}</Text>
-                        <Space wrap>
-                            <Tag>{room?.subject || "未分类"}</Tag>
-                            <Tag color="blue">ID: {room?.id ?? roomId}</Tag>
-                        </Space>
-                    </Space>
-                    <Space wrap>
-                        <Tag color={wsStatus === "connected" ? "green" : wsStatus === "connecting" ? "gold" : "default"}>
-                            WS: {wsStatus}
-                        </Tag>
-                        <Tag color="blue">房间人数：{members.length}</Tag>
-                    </Space>
+        <div className="room-page">
+            {/* 1. Top Navigation */}
+            <header className="top-nav">
+                <div className="nav-left">
+                    <Button type="text" icon={<ArrowLeftOutlined />} onClick={() => window.history.back()} />
+                    <div className="logo-text">StudyRoom</div>
                 </div>
-            </Card>
-
-            <div style={{ height: 16 }} />
-
-            <Row gutter={[16, 16]}>
-                <Col xs={24} md={7}>
-                    <Card
-                        title="学习任务待办"
-                        extra={<Button type="primary" onClick={openTaskModal}>+ 添加</Button>}
-                        style={{ ...transparentCardStyle, height: 360 }}
-                        bodyStyle={scrollBodyStyle(280)}
+                <div className="nav-center">
+                    <div className="room-title">{room?.title || "自习室"}</div>
+                    <div className="online-count">
+                        <Badge status="success" /> {members.length} 人在线
+                    </div>
+                </div>
+                <div className="nav-right">
+                    <Popover 
+                        trigger="click"
+                        placement="bottomRight"
+                        title="个人设置"
+                        content={
+                            <div style={{ width: 200 }}>
+                                <Form layout="vertical">
+                                    <Form.Item label="昵称">
+                                        <Input 
+                                            value={user.name} 
+                                            onChange={e => persistUser({...user, name: e.target.value})} 
+                                            onBlur={() => wsSend({ type: "join", payload: { roomId, user } })}
+                                        />
+                                    </Form.Item>
+                                </Form>
+                                <Divider style={{ margin: '8px 0' }} />
+                                <Text type="secondary" style={{ fontSize: 12 }}>ID: {user.id}</Text>
+                            </div>
+                        }
                     >
-                        <List
-                            dataSource={tasks}
-                            locale={{ emptyText: "暂无任务" }}
-                            renderItem={(task) => (
-                                <List.Item>
-                                    <Space direction="vertical" style={{ width: "100%" }}>
-                                        <Space wrap>
-                                            <Text strong>{task.title}</Text>
-                                            <Tag>{task.minutes} 分钟</Tag>
-                                            <Tag color={task.status === "completed" ? "green" : task.status === "running" ? "blue" : task.status === "timeout" ? "red" : "default"}>
-                                                {task.status === "completed" ? "已完成" : task.status === "running" ? "计时中" : task.status === "timeout" ? "已到时" : task.status === "paused" ? "已暂停" : "待开始"}
-                                            </Tag>
-                                        </Space>
-                                        <Space wrap>
-                                            <Text type="secondary">剩余：{formatSeconds(task.remainingSec)}</Text>
-                                        </Space>
-                                        <Space wrap>
-                                            <Button type="primary" disabled={task.status === "completed"} onClick={() => startTask(task.id)}>开始</Button>
-                                            <Button disabled={task.status !== "running"} onClick={() => stopTask(task.id)}>暂停</Button>
-                                            <Button disabled={task.status === "completed"} onClick={() => completeTask(task.id)}>完成</Button>
-                                        </Space>
-                                    </Space>
-                                </List.Item>
-                            )}
-                        />
-                    </Card>
-                </Col>
+                        <Avatar 
+                            style={{ backgroundColor: '#93A9D1', cursor: 'pointer' }} 
+                            src={`https://api.dicebear.com/7.x/notionists/svg?seed=${user.id}`}
+                        >
+                            {user.name?.[0]}
+                        </Avatar>
+                    </Popover>
+                </div>
+            </header>
 
-                <Col xs={24} md={10}>
-                    <Card
-                        title="虚拟形象"
-                        bodyStyle={{ padding: 12, ...scrollBodyStyle(240) }}
-                        style={{ ...transparentCardStyle, height: 300 }}
-                    >
-                        <div
-                            style={{
-                                height: 220,
-                                borderRadius: 12,
-                                background: "transparent",
-                                position: "relative",
-                                display: "flex",
-                                alignItems: "center",
-                                justifyContent: "center",
-                                overflow: "hidden",
+            {/* 2. Main Visual Area */}
+            <main className="main-area">
+                <div className="immersive-zone">
+                    <div className="timer-container">
+                        <div 
+                            className={`timer-display ${pomoStatus === 'running' ? 'timer-breathing' : ''}`}
+                            style={{ 
+                                color: pomoStatus === 'paused' ? '#ccc' : 'var(--morandi-text-primary)' 
                             }}
                         >
-                            <div style={{ position: "absolute", inset: 0, opacity: 0.35, background: "linear-gradient(135deg,#e4e9ff,#ffffff)" }} />
-                            <div style={{ width: "100%", display: "flex", alignItems: "center", gap: 8, padding: "0 8px", position: "relative" }}>
-                                <div
-                                    ref={avatarStripRef}
-                                    onWheel={(e) => {
-                                        e.preventDefault();
-                                        const target = avatarStripRef.current;
-                                        if (!target) return;
-                                        target.scrollLeft += e.deltaY;
+                            {formatTime(timeLeft)}
+                        </div>
+                        
+                        {/* Real-time Clock */}
+                        <div style={{ fontSize: '14px', color: '#999', marginTop: '-10px', marginBottom: '24px' }}>
+                             北京时间 {currentTime.toLocaleTimeString('zh-CN', { hour12: false, timeZone: 'Asia/Shanghai' })}
+                        </div>
+
+                        {/* Controls */}
+                        <div className="timer-controls" style={{ marginBottom: '32px', display: 'flex', gap: '24px', justifyContent: 'center', alignItems: 'center' }}>
+                            <Tooltip title="重置">
+                                <Button shape="circle" icon={<ReloadOutlined />} onClick={resetTimer} size="large" className="btn-reset" />
+                            </Tooltip>
+                            
+                            <Tooltip title={pomoStatus === 'paused' ? "继续" : "开始"}>
+                                 <button 
+                                    className={`control-btn-circle btn-start`}
+                                    onClick={() => { if(pomoStatus !== 'running') toggleTimer(); }}
+                                    style={{ 
+                                        opacity: pomoStatus === 'running' ? 0.5 : 1, 
+                                        cursor: pomoStatus === 'running' ? 'not-allowed' : 'pointer',
+                                        filter: pomoStatus === 'running' ? 'grayscale(100%)' : 'none'
                                     }}
-                                    style={{
-                                        display: "flex",
-                                        gap: 12,
-                                        overflowX: "auto",
-                                        padding: "8px 4px",
-                                        scrollbarWidth: "none",
-                                        flex: 1,
-                                    }}
+                                    disabled={pomoStatus === 'running'}
                                 >
-                                    {avatars.map((m) => (
-                                        <Tooltip key={m.id} title={m.name}>
-                                            <div style={{ textAlign: "center" }}>
-                                                <Avatar size={64} style={{ backgroundColor: m.id === user.id ? "#722ed1" : "#1677ff" }}>
-                                                    {String(m.name || "?").slice(0, 1).toUpperCase()}
-                                                </Avatar>
-                                                <div style={{ fontSize: 12, marginTop: 6 }}>{m.name || m.id}</div>
-                                            </div>
-                                        </Tooltip>
-                                    ))}
-                                </div>
+                                    <PlayCircleFilled />
+                                </button>
+                            </Tooltip>
+
+                             <Tooltip title="暂停">
+                                 <button 
+                                    className={`control-btn-circle btn-pause`}
+                                    onClick={() => { if(pomoStatus === 'running') toggleTimer(); }}
+                                    style={{ 
+                                        opacity: pomoStatus !== 'running' ? 0.5 : 1, 
+                                        cursor: pomoStatus !== 'running' ? 'not-allowed' : 'pointer',
+                                        filter: pomoStatus !== 'running' ? 'grayscale(100%)' : 'none'
+                                    }}
+                                    disabled={pomoStatus !== 'running'}
+                                >
+                                    <PauseCircleFilled />
+                                </button>
+                            </Tooltip>
+                        </div>
+
+                        <div className="study-stats">
+                            <div className="stat-item">
+                                <div className="stat-value">{completedCount}</div>
+                                <div className="stat-label">番茄钟</div>
+                            </div>
+                            <div className="stat-item">
+                                <div className="stat-value">{totalStudyTime}m</div>
+                                <div className="stat-label">专注时长</div>
                             </div>
                         </div>
-                    </Card>
-                </Col>
+                    </div>
 
-                <Col xs={24} md={7}>
-                    <Card title="房间聊天" style={{ ...transparentCardStyle, height: 360 }} bodyStyle={scrollBodyStyle(280)}>
-                        <List
-                            size="small"
-                            style={{ height: 200, overflow: "auto", marginBottom: 12 }}
-                            dataSource={chatMessages}
-                            locale={{ emptyText: "暂无消息" }}
-                            renderItem={(m) => (
-                                <List.Item>
-                                    <Space direction="vertical" style={{ width: "100%" }}>
-                                        <Space wrap>
-                                            <Text strong>{m?.user?.name || "?"}</Text>
-                                            <Text type="secondary">{m?.ts ? new Date(m.ts).toLocaleTimeString() : ""}</Text>
+                    {/* Collapsible Todo Panel */}
+                    {todoPanelOpen ? (
+                        <div className="todo-panel">
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+                                <Text strong>待办列表 ({tasks.filter(t => !t.done).length})</Text>
+                                <Button type="text" size="small" icon={<DownOutlined />} onClick={() => setTodoPanelOpen(false)} />
+                            </div>
+                            <List
+                                size="small"
+                                dataSource={tasks}
+                                renderItem={t => (
+                                    <List.Item onClick={() => toggleTask(t.id)} style={{ cursor: 'pointer' }}>
+                                        <Space>
+                                            {t.done ? <CheckCircleOutlined style={{ color: '#52c41a' }} /> : <div style={{ width: 14, height: 14, border: '1px solid #ccc', borderRadius: '50%' }} />}
+                                            <Text delete={t.done} type={t.done ? 'secondary' : ''}>{t.title}</Text>
                                         </Space>
-                                        <Text>{m?.content || ""}</Text>
-                                    </Space>
-                                </List.Item>
-                            )}
-                        />
-
-                        <Space style={{ width: "100%" }}>
-                            <Input
-                                value={chatDraft}
-                                onChange={(e) => setChatDraft(e.target.value)}
-                                onPressEnter={() => {
-                                    const text = chatDraft.trim();
-                                    if (!text) return;
-                                    wsSend({ type: "chat", payload: { roomId, content: text } });
-                                    setChatDraft("");
-                                }}
-                                placeholder="输入消息，回车发送"
+                                    </List.Item>
+                                )}
                             />
-                            <Button
-                                type="primary"
-                                onClick={() => {
-                                    const text = chatDraft.trim();
-                                    if (!text) return;
-                                    wsSend({ type: "chat", payload: { roomId, content: text } });
-                                    setChatDraft("");
-                                }}
-                            >
-                                发送
-                            </Button>
-                        </Space>
-                    </Card>
-                </Col>
-            </Row>
-
-            <div style={{ height: 16 }} />
-
-            <Row gutter={[16, 16]}>
-                <Col xs={24} md={7}>
-                    <Card title="植物" style={{ ...transparentCardStyle, height: 240 }} bodyStyle={scrollBodyStyle(180)}>
-                        <div
-                            style={{
-                                height: 180,
-                                borderRadius: 12,
-                                background: "transparent",
-                                display: "flex",
-                                alignItems: "center",
-                                justifyContent: "center",
-                                position: "relative",
-                            }}
-                        >
+                            {tasks.length === 0 && <div style={{ textAlign: 'center', color: '#999', padding: 20 }}>暂无任务</div>}
                         </div>
-                    </Card>
-                </Col>
-
-                <Col xs={24} md={10}>
-                    <Card style={{ ...transparentCardStyle, height: 240 }} bodyStyle={scrollBodyStyle(180)}>
-                        <Row gutter={[12, 12]}>
-                            <Col xs={24} sm={8}>
-                                <Card size="small" style={{ ...transparentCardStyle }}>
-                                    <Text type="secondary">自习时长</Text>
-                                    <div style={{ fontSize: 20, fontWeight: 600 }}>{studyMinutesFromPomodoro} 分钟</div>
-                                </Card>
-                            </Col>
-                            <Col xs={24} sm={8}>
-                                <Card size="small" style={{ ...transparentCardStyle }}>
-                                    <Text type="secondary">完成任务</Text>
-                                    <div style={{ fontSize: 20, fontWeight: 600 }}>{completedTaskCount} 个</div>
-                                </Card>
-                            </Col>
-                            <Col xs={24} sm={8}>
-                                <Card size="small" style={{ ...transparentCardStyle }}>
-                                    <Text type="secondary">获得金币</Text>
-                                    <div style={{ fontSize: 20, fontWeight: 600 }}>{coins?.totalCoins ?? 0}</div>
-                                </Card>
-                            </Col>
-                        </Row>
-                        <Divider style={{ margin: "12px 0" }} />
-                        <Space wrap>
-                            <Tag color="gold">Last: {coins?.lastTransactionAt ? String(coins.lastTransactionAt) : "-"}</Tag>
-                            <Tag>任务总数：{tasks.length}</Tag>
-                        </Space>
-                    </Card>
-                </Col>
-
-                <Col xs={24} md={7}>
-                    <Card title="时间显示与番茄钟" style={{ ...transparentCardStyle, height: 360 }} bodyStyle={scrollBodyStyle(300)}>
-                        <Space direction="vertical" style={{ width: "100%" }}>
-                            <Card size="small" style={{ ...transparentCardStyle }}>
-                                <Text type="secondary">北京时间</Text>
-                                <div style={{ fontSize: 16, fontWeight: 600 }}>{nowText || "--"}</div>
-                            </Card>
-                            <Card size="small" bodyStyle={{ padding: 12 }} style={{ ...transparentCardStyle }}>
-                                <Space wrap align="center">
-                                    <Text>番茄钟时长</Text>
-                                    <InputNumber
-                                        min={1}
-                                        max={180}
-                                        value={pomodoroMinutes}
-                                        onChange={(value) => setPomodoroMinutes(value || 1)}
-                                    />
-                                    <Text type="secondary">分钟</Text>
-                                </Space>
-                                <div style={{ height: 8 }} />
-                                <PomodoroTimer
-                                    initialMinutes={pomodoroMinutes}
-                                    onComplete={() => {
-                                        message.info("计时完成：可点 SUCCESS / FAIL 记录到后端");
-                                        wsSend({ type: "timerStatus", payload: { status: "idle" } });
-                                    }}
-                                    onStart={() => wsSend({ type: "timerStatus", payload: { status: "focusing" } })}
-                                    onStop={() => wsSend({ type: "timerStatus", payload: { status: "idle" } })}
+                    ) : (
+                        <div className="todo-drawer-btn" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 12 }}>
+                            <div onClick={() => setTodoPanelOpen(true)} style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4 }}>
+                                <UpOutlined /> 学习任务待办
+                            </div>
+                            <Tooltip title="添加任务">
+                                <Button 
+                                    type="text" 
+                                    size="small" 
+                                    shape="circle"
+                                    icon={<PlusOutlined />} 
+                                    onClick={(e) => { e.stopPropagation(); setTaskModalOpen(true); }}
+                                    style={{ border: '1px solid #eee' }}
                                 />
-                                <Divider style={{ margin: "12px 0" }} />
-                                <Space wrap>
-                                    <Button type="primary" onClick={() => submitPomodoro("SUCCESS")}>
-                                        完成 SUCCESS（记录 + 加币）
-                                    </Button>
-                                    <Button danger onClick={() => submitPomodoro("FAIL")}>
-                                        失败 FAIL（仅记录）
-                                    </Button>
-                                </Space>
-                            </Card>
-                        </Space>
-                    </Card>
-                </Col>
-            </Row>
-
-            <div style={{ height: 16 }} />
-
-            <Card
-                title="在线成员"
-                extra={<Text type="secondary">可修改昵称后刷新在线列表</Text>}
-                style={{ ...transparentCardStyle, height: 320 }}
-                bodyStyle={scrollBodyStyle(260)}
-            >
-                <Space direction="vertical" style={{ width: "100%" }}>
-                    <Space wrap align="center">
-                        <span>你的昵称：</span>
-                        <Input
-                            style={{ width: 200 }}
-                            value={user.name}
-                            onChange={(e) => persistUser({ ...user, name: e.target.value })}
-                            onBlur={() => {
-                                const trimmed = String(user.name || "").trim() || "游客";
-                                const next = trimmed !== user.name ? { ...user, name: trimmed } : user;
-                                if (next !== user) persistUser(next);
-                                wsSend({ type: "join", payload: { roomId, user: next } });
-                            }}
-                            placeholder="输入昵称"
-                        />
-                    </Space>
-
-                    <List
-                        size="small"
-                        dataSource={members}
-                        locale={{ emptyText: wsStatus === "connected" ? "暂无成员" : "未连接" }}
-                        renderItem={(m) => (
-                            <List.Item>
-                                <Space wrap>
-                                    <Text strong>{m?.name || m?.id || "?"}</Text>
-                                    <Tag color={m?.status === "focusing" ? "green" : "default"}>
-                                        {m?.status === "focusing" ? "专注中" : "空闲"}
-                                    </Tag>
-                                    {m?.id === user.id ? <Tag color="purple">你</Tag> : null}
-                                </Space>
-                            </List.Item>
-                        )}
-                    />
-                </Space>
-            </Card>
-
-            <div style={{ height: 16 }} />
-
-            <Card
-                title="Pomodoro 记录"
-                loading={loadingPomodoros}
-                style={{ ...transparentCardStyle, height: 260 }}
-                bodyStyle={scrollBodyStyle(200)}
-            >
-                <List
-                    dataSource={pomodoros}
-                    locale={{ emptyText: "暂无记录" }}
-                    renderItem={(p) => (
-                        <List.Item>
-                            <Space wrap>
-                                <Tag color={p.result === "SUCCESS" ? "green" : "red"}>{p.result}</Tag>
-                                <Text>duration: {p.durationMinutes}min</Text>
-                                <Text type="secondary">coins: {p.awardedCoins ?? 0}</Text>
-                                <Text type="secondary">at: {p.createdAt ? String(p.createdAt) : ""}</Text>
-                            </Space>
-                        </List.Item>
+                            </Tooltip>
+                        </div>
                     )}
-                />
-            </Card>
-        </div>
-        </div>
+                </div>
 
-        <Modal
-            title="新增学习任务"
-            open={taskModalOpen}
-            onCancel={() => setTaskModalOpen(false)}
-            onOk={handleAddTask}
-            okText="保存"
-            cancelText="取消"
-        >
-            <Form
-                layout="vertical"
-                form={taskForm}
-                initialValues={{ title: "", minutes: 30 }}
+                {/* 3. Right Sidebar */}
+                <div className="right-sidebar" style={{ width: activeSidebar ? 360 : 64 }}>
+                    <div className="sidebar-icons">
+                        <Tooltip title="聊天" placement="left">
+                            <div className={`icon-btn ${activeSidebar === 'chat' ? 'active' : ''}`} onClick={() => toggleSidebar('chat')}>
+                                <MessageOutlined />
+                            </div>
+                        </Tooltip>
+                        <Tooltip title="在线成员" placement="left">
+                            <div className={`icon-btn ${activeSidebar === 'members' ? 'active' : ''}`} onClick={() => toggleSidebar('members')}>
+                                <TeamOutlined />
+                            </div>
+                        </Tooltip>
+                        <Tooltip title="植物" placement="left">
+                            <div className={`icon-btn ${activeSidebar === 'plants' ? 'active' : ''}`} onClick={() => toggleSidebar('plants')}>
+                                <ExperimentOutlined />
+                            </div>
+                        </Tooltip>
+                        <Tooltip title="记录" placement="left">
+                            <div className={`icon-btn ${activeSidebar === 'records' ? 'active' : ''}`} onClick={() => toggleSidebar('records')}>
+                                <BarChartOutlined />
+                            </div>
+                        </Tooltip>
+                    </div>
+                    {/* Content Area */}
+                    <div className={`sidebar-content ${activeSidebar ? 'visible' : ''}`} style={{ display: activeSidebar ? 'block' : 'none' }}>
+                        {renderSidebarContent()}
+                    </div>
+                </div>
+            </main>
+            
+            {/* Task Create Modal */}
+            <Modal
+                title="新增学习任务"
+                open={taskModalOpen}
+                onCancel={() => setTaskModalOpen(false)}
+                onOk={handleAddTask}
+                okText="添加"
+                cancelText="取消"
             >
-                <Form.Item
-                    label="任务名称"
-                    name="title"
-                    rules={[{ required: true, message: "请输入任务名称" }]}
-                >
-                    <Input placeholder="如：背单词" maxLength={40} />
-                </Form.Item>
-                <Form.Item
-                    label="规定用时（分钟）"
-                    name="minutes"
-                    rules={[{ required: true, message: "请输入用时" }]}
-                >
-                    <InputNumber min={1} max={240} style={{ width: "100%" }} />
-                </Form.Item>
-            </Form>
-        </Modal>
-        </>
+                <Form form={taskForm}>
+                    <Form.Item name="title" rules={[{ required: true, message: '请输入任务内容' }]}>
+                        <Input placeholder="例如：背诵 50 个英语单词" autoFocus />
+                    </Form.Item>
+                </Form>
+            </Modal>
+        </div>
     );
 }
