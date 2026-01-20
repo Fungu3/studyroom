@@ -50,18 +50,33 @@ export function createPomodoro(roomId, payload) {
   return http.post(`${BASE}/${roomId}/pomodoros`, payload);
 }
 
-/**
- * 获取 pomodoro 列表（默认后端返回最近 20 条）
- * GET /api/rooms/{id}/pomodoros
- */
 export function listPomodoros(roomId) {
   return http.get(`${BASE}/${roomId}/pomodoros`);
 }
 
-/**
- * 获取 coins
- * GET /api/rooms/{id}/coins
- */
 export function getCoins(roomId) {
-  return http.get(`${BASE}/${roomId}/coins`);
+    return http.get(`${BASE}/${roomId}/coins`);
+}
+
+// --- Notes ---
+
+export function listNotes(roomId) {
+    return http.get(`${BASE}/${roomId}/notes`);
+}
+
+export function createNote(roomId, payload) {
+    return http.post(`${BASE}/${roomId}/notes`, payload);
+}
+
+// 收藏 (1收藏=1金币 to publisher)
+export function collectNote(roomId, noteId, userId) {
+    return http.post(`${BASE}/${roomId}/notes/${noteId}/collect?userId=${userId}`);
+}
+
+export function addNoteComment(roomId, noteId, payload) {
+    return http.post(`${BASE}/${roomId}/notes/${noteId}/comments`, payload);
+}
+
+export function likeNoteComment(roomId, commentId, userId) {
+    return http.post(`${BASE}/${roomId}/notes/comments/${commentId}/like?userId=${userId}`);
 }

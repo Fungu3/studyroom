@@ -270,3 +270,5 @@
 
 /* Removed task-fab as it is now integrated into todo-drawer-btn */
 
+.resize-handle-hover { transition: background 0.2s; }
+.resize-handle-hover:hover { background: rgba(0,0,0,0.1); }

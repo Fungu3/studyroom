@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState, useCallback } from "react";
 import { Link, useParams } from "react-router-dom";
+import NoteItem from "../components/NoteItem";
 import {
     Avatar,
     Button,
@@ -33,13 +34,19 @@ import {
     UpOutlined,
     DownOutlined,
     SettingOutlined,
-    CheckCircleOutlined
+    CheckCircleOutlined,
+    CloseOutlined,
+    FileTextOutlined,
+    PictureOutlined,
+    LikeOutlined,
+    LikeFilled,
+    SendOutlined
 } from "@ant-design/icons";
 
-import { getRoom, createPomodoro, listPomodoros, getCoins } from "../api/rooms";
+import { getRoom, createPomodoro, listPomodoros, getCoins, listNotes, createNote, collectNote, addNoteComment, likeNoteComment } from "../api/rooms";
 import "./RoomDetailPage.css";
 
-const { Text, Title } = Typography;
+const { Text, Title, Paragraph } = Typography;
 
 const formatTime = (seconds) => {
     const safe = Math.max(0, seconds);
@@ -88,8 +95,19 @@ export default function RoomDetailPage() {
     
     // --- UI State ---
     const [currentTime, setCurrentTime] = useState(new Date());
-    const [activeSidebar, setActiveSidebar] = useState(null); // 'chat', 'members', 'plants', 'records'
+    const [activeSidebar, setActiveSidebar] = useState(null); // 'chat', 'members', 'plants', 'records', 'notes'
+    const [sidebarWidth, setSidebarWidth] = useState(360);
+    const [isResizing, setIsResizing] = useState(false);
     const [todoPanelOpen, setTodoPanelOpen] = useState(false);
+
+    // --- Notes State ---
+    const [notes, setNotes] = useState([]);
+    const [newNoteTitle, setNewNoteTitle] = useState("");
+    const [newNoteContent, setNewNoteContent] = useState("");
+    const [newNoteImage, setNewNoteImage] = useState(null); // Base64 or URL
+    // Personal Notes Module
+    const [personalNotesOpen, setPersonalNotesOpen] = useState(false);
+    const [personalNoteDraft, setPersonalNoteDraft] = useState({ title: "", content: "", image: null });
 
     // --- Pomodoro State ---
     const [pomoStatus, setPomoStatus] = useState("idle"); // idle, running, paused
@@ -128,6 +146,8 @@ export default function RoomDetailPage() {
             setCoins(c);
             const p = await listPomodoros(roomId);
             setPomodoros(Array.isArray(p) ? p : []);
+            const n = await listNotes(roomId);
+            setNotes(Array.isArray(n) ? n : []);
         } catch (e) {
             console.error(e);
         }
@@ -145,6 +165,30 @@ export default function RoomDetailPage() {
         const mins = completed.reduce((acc, curr) => acc + (curr.durationMinutes || 0), 0);
         setTotalStudyTime(mins);
     }, [pomodoros]);
+
+    // --- Effects: Sidebar Resizing ---
+    const startResizing = useCallback(() => setIsResizing(true), []);
+    const stopResizing = useCallback(() => setIsResizing(false), []);
+    const resize = useCallback((e) => {
+        if (isResizing) {
+            const newWidth = window.innerWidth - e.clientX;
+            // Limit width betwen 250px and 800px
+            if (newWidth >= 250 && newWidth <= 800) {
+                setSidebarWidth(newWidth);
+            }
+        }
+    }, [isResizing]);
+
+    useEffect(() => {
+        if (isResizing) {
+            window.addEventListener("mousemove", resize);
+            window.addEventListener("mouseup", stopResizing);
+        }
+        return () => {
+             window.removeEventListener("mousemove", resize);
+             window.removeEventListener("mouseup", stopResizing);
+        };
+    }, [isResizing, resize, stopResizing]);
 
     // --- Effects: WebSocket ---
     useEffect(() => {
@@ -273,6 +317,56 @@ export default function RoomDetailPage() {
         setActiveSidebar(activeSidebar === panel ? null : panel);
     };
 
+    // --- Notes Handlers ---
+    const handlePublishNote = async () => {
+        if (!newNoteTitle.trim() || !newNoteContent.trim()) {
+            message.warning("请输入标题和内容");
+            return;
+        }
+        try {
+            await createNote(roomId, {
+                userId: user.id,
+                title: newNoteTitle,
+                content: newNoteContent,
+                image: newNoteImage
+            });
+            message.success("发布成功");
+            setNewNoteTitle("");
+            setNewNoteContent("");
+            setNewNoteImage(null);
+            refreshAll();
+        } catch (e) {
+            message.error("发布失败");
+        }
+    };
+
+    const handleCollectNote = async (noteId) => {
+        try {
+            await collectNote(roomId, noteId, user.id);
+            message.success("收藏成功 +1金币");
+            refreshAll();
+        } catch(e) {
+            refreshAll();
+        }
+    };
+
+    const handleAddComment = async (noteId, content) => {
+        if (!content.trim()) return;
+        try {
+            await addNoteComment(roomId, noteId, { userId: user.id, content });
+            refreshAll();
+        } catch(e) {}
+    };
+
+    const handleImageUpload = (e) => {
+        const file = e.target.files[0];
+        if (file) {
+            const reader = new FileReader();
+            reader.onload = (evt) => setNewNoteImage(evt.target.result);
+            reader.readAsDataURL(file);
+        }
+    };
+
     // --- Sub-renderers ---
     const renderSidebarContent = () => {
         switch (activeSidebar) {
@@ -382,6 +476,62 @@ export default function RoomDetailPage() {
                                 />
                             </div>
                         </Space>
+                    </div>
+                );
+            case 'notes':
+                return (
+                    <div style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
+                        <Title level={5}>📝 笔记分享</Title>
+                        
+                        {/* Publish Area */}
+                        <div style={{ padding: '12px', background: '#f5f5f5', borderRadius: 8, marginBottom: 16 }}>
+                            <Input 
+                                placeholder="笔记标题" 
+                                style={{ marginBottom: 8, fontWeight: 'bold' }} 
+                                value={newNoteTitle}
+                                onChange={e => setNewNoteTitle(e.target.value)}
+                            />
+                            <Input.TextArea 
+                                placeholder="记录此时此刻的想法..." 
+                                rows={3} 
+                                style={{ marginBottom: 8, resize: 'none' }}
+                                value={newNoteContent}
+                                onChange={e => setNewNoteContent(e.target.value)}
+                            />
+                            {newNoteImage && (
+                                <div style={{ marginBottom: 8, position: 'relative' }}>
+                                    <img src={newNoteImage} alt="preview" style={{ maxWidth: '100%', maxHeight: 100, borderRadius: 4 }} />
+                                    <CloseOutlined 
+                                        style={{ position: 'absolute', top: 0, right: 0, padding: 4, background: 'rgba(255,255,255,0.8)', cursor: 'pointer' }}
+                                        onClick={() => setNewNoteImage(null)}
+                                    />
+                                </div>
+                            )}
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                <label style={{ cursor: 'pointer', color: '#1890ff', display: 'flex', alignItems: 'center', gap: 4 }}>
+                                    <PictureOutlined style={{ fontSize: 18 }} />
+                                    <span style={{fontSize: 12}}>上传图片</span>
+                                    <input type="file" accept="image/*" style={{ display: 'none' }} onChange={handleImageUpload} />
+                                </label>
+                                <Button type="primary" size="small" onClick={handlePublishNote}>发布</Button>
+                            </div>
+                        </div>
+
+                        {/* Notes Feed */}
+                        <div style={{ flex: 1, overflowY: 'auto' }}>
+                            <List
+                                dataSource={notes}
+                                itemLayout="vertical"
+                                renderItem={item => (
+                                    <NoteItem 
+                                        note={item} 
+                                        user={user} 
+                                        onCollect={handleCollectNote} 
+                                        onAddComment={handleAddComment} 
+                                    />
+                                )}
+                            />
+                        </div>
                     </div>
                 );
             default: return null;
@@ -500,49 +650,140 @@ export default function RoomDetailPage() {
                         </div>
                     </div>
 
-                    {/* Collapsible Todo Panel */}
-                    {todoPanelOpen ? (
-                        <div className="todo-panel">
-                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-                                <Text strong>待办列表 ({tasks.filter(t => !t.done).length})</Text>
-                                <Button type="text" size="small" icon={<DownOutlined />} onClick={() => setTodoPanelOpen(false)} />
-                            </div>
-                            <List
-                                size="small"
-                                dataSource={tasks}
-                                renderItem={t => (
-                                    <List.Item onClick={() => toggleTask(t.id)} style={{ cursor: 'pointer' }}>
-                                        <Space>
-                                            {t.done ? <CheckCircleOutlined style={{ color: '#52c41a' }} /> : <div style={{ width: 14, height: 14, border: '1px solid #ccc', borderRadius: '50%' }} />}
-                                            <Text delete={t.done} type={t.done ? 'secondary' : ''}>{t.title}</Text>
-                                        </Space>
-                                    </List.Item>
-                                )}
-                            />
-                            {tasks.length === 0 && <div style={{ textAlign: 'center', color: '#999', padding: 20 }}>暂无任务</div>}
-                        </div>
-                    ) : (
-                        <div className="todo-drawer-btn" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 12 }}>
-                            <div onClick={() => setTodoPanelOpen(true)} style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4 }}>
-                                <UpOutlined /> 学习任务待办
-                            </div>
-                            <Tooltip title="添加任务">
-                                <Button 
-                                    type="text" 
-                                    size="small" 
-                                    shape="circle"
-                                    icon={<PlusOutlined />} 
-                                    onClick={(e) => { e.stopPropagation(); setTaskModalOpen(true); }}
-                                    style={{ border: '1px solid #eee' }}
+                    {/* Study Tasks Dropdown (Top - Left) */}
+                    <div style={{ position: 'absolute', top: 24, left: 24, zIndex: 50, display: 'flex', flexDirection: 'column', alignItems: 'flex-start' }}>
+                         <div 
+                            onClick={() => setTodoPanelOpen(!todoPanelOpen)}
+                            style={{ 
+                                background: 'rgba(255,255,255,0.85)', 
+                                padding: '8px 16px', 
+                                borderRadius: 20, 
+                                cursor: 'pointer',
+                                display: 'flex', 
+                                alignItems: 'center', 
+                                gap: 8,
+                                boxShadow: '0 2px 8px rgba(0,0,0,0.05)',
+                                backdropFilter: 'blur(4px)',
+                                transition: 'all 0.3s',
+                                border: '1px solid rgba(0,0,0,0.05)'
+                            }}
+                         >
+                             <CheckCircleOutlined style={{ color: '#95B46A' }} />
+                             <span style={{ fontWeight: 500, color: '#5F6368' }}>学习任务待办</span>
+                             {todoPanelOpen ? <UpOutlined style={{fontSize: 10}}/> : <DownOutlined style={{fontSize: 10}}/>}
+                         </div>
+
+                         {/* Dropdown Content */}
+                         {todoPanelOpen && (
+                             <div 
+                                style={{
+                                    marginTop: 8,
+                                    background: 'rgba(255,255,255,0.95)',
+                                    borderRadius: 12,
+                                    padding: '12px',
+                                    width: 280,
+                                    boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
+                                    maxHeight: 400,
+                                    overflowY: 'auto',
+                                    border: '1px solid rgba(0,0,0,0.05)'
+                                }}
+                             >
+                                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8, padding: '0 4px', borderBottom: '1px solid #f0f0f0', paddingBottom: 8 }}>
+                                    <Text type="secondary" style={{fontSize: 12}}>待完成: {tasks.filter(t => !t.done).length}</Text>
+                                    <Tooltip title="添加任务">
+                                        <Button 
+                                            type="text" size="small" icon={<PlusOutlined />} 
+                                            onClick={() => setTaskModalOpen(true)}
+                                            style={{ color: '#1890ff' }}
+                                        />
+                                    </Tooltip>
+                                </div>
+                                <List
+                                    size="small"
+                                    dataSource={tasks}
+                                    locale={{ emptyText: <div style={{color:'#ccc', padding: '10px 0'}}>暂无任务，休息一下~</div> }}
+                                    renderItem={t => (
+                                        <List.Item 
+                                            onClick={() => toggleTask(t.id)} 
+                                            style={{ cursor: 'pointer', padding: '8px', borderRadius: 6, transition: 'background 0.2s' }}
+                                            onMouseEnter={(e) => e.currentTarget.style.background = '#f5f5f5'}
+                                            onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
+                                        >
+                                            <Space align="start" style={{ width: '100%' }}>
+                                                <div style={{ marginTop: 4 }}>
+                                                    {t.done ? <CheckCircleOutlined style={{ color: '#52c41a' }} /> : <div style={{ width: 14, height: 14, border: '1px solid #ccc', borderRadius: '50%' }} />}
+                                                </div>
+                                                <Text delete={t.done} type={t.done ? 'secondary' : ''} style={{ lineHeight: 1.4, wordBreak: 'break-all' }}>{t.title}</Text>
+                                            </Space>
+                                        </List.Item>
+                                    )}
                                 />
-                            </Tooltip>
-                        </div>
-                    )}
+                             </div>
+                         )}
+                         <div 
+                            onClick={() => setPersonalNotesOpen(true)}
+                            style={{ 
+                                marginTop: 8,
+                                background: 'rgba(255,255,255,0.85)', 
+                                padding: '8px 16px', 
+                                borderRadius: 20, 
+                                cursor: 'pointer',
+                                display: 'flex', 
+                                alignItems: 'center', 
+                                gap: 8,
+                                boxShadow: '0 2px 8px rgba(0,0,0,0.05)',
+                                backdropFilter: 'blur(4px)',
+                                transition: 'all 0.3s',
+                                border: '1px solid rgba(0,0,0,0.05)'
+                            }}
+                         >
+                             <FileTextOutlined style={{ color: '#95B46A' }} />
+                             <span style={{ fontWeight: 500, color: '#5F6368' }}>个人笔记</span>
+                         </div>
+                    </div>
                 </div>
 
                 {/* 3. Right Sidebar */}
-                <div className="right-sidebar" style={{ width: activeSidebar ? 360 : 64 }}>
+                <div 
+                    className="right-sidebar" 
+                    style={{ 
+                        width: activeSidebar ? sidebarWidth : 64,
+                        position: 'relative',
+                        userSelect: isResizing ? 'none' : 'auto' 
+                    }}
+                >
+                    {/* Resizing Handle */}
+                    {activeSidebar && (
+                        <div 
+                            onMouseDown={startResizing}
+                            style={{
+                                position: 'absolute',
+                                left: 0,
+                                top: 0,
+                                bottom: 0,
+                                width: 4,
+                                cursor: 'ew-resize',
+                                zIndex: 100,
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center'
+                            }}
+                            className="resize-handle-hover"
+                        >
+                            <div style={{ width: 1, height: 20, background: '#ccc' }}></div>
+                            <div style={{ width: 1, height: 20, background: '#ccc', marginLeft: 1 }}></div>
+                        </div>
+                    )}
+
                     <div className="sidebar-icons">
+                         <Tooltip title="收起面板" placement="left">
+                            {activeSidebar && (
+                                <div className="icon-btn" onClick={() => setActiveSidebar(null)} style={{ marginBottom: 32, color: '#000' }}>
+                                    <CloseOutlined />
+                                </div>
+                            )}
+                        </Tooltip>
+
                         <Tooltip title="聊天" placement="left">
                             <div className={`icon-btn ${activeSidebar === 'chat' ? 'active' : ''}`} onClick={() => toggleSidebar('chat')}>
                                 <MessageOutlined />
@@ -551,6 +792,11 @@ export default function RoomDetailPage() {
                         <Tooltip title="在线成员" placement="left">
                             <div className={`icon-btn ${activeSidebar === 'members' ? 'active' : ''}`} onClick={() => toggleSidebar('members')}>
                                 <TeamOutlined />
+                            </div>
+                        </Tooltip>
+                        <Tooltip title="笔记分享" placement="left">
+                            <div className={`icon-btn ${activeSidebar === 'notes' ? 'active' : ''}`} onClick={() => toggleSidebar('notes')}>
+                                <FileTextOutlined />
                             </div>
                         </Tooltip>
                         <Tooltip title="植物" placement="left">
@@ -586,6 +832,97 @@ export default function RoomDetailPage() {
                     </Form.Item>
                 </Form>
             </Modal>
+
+            <Drawer
+                title="个人笔记"
+                placement="bottom"
+                height="80vh"
+                onClose={() => setPersonalNotesOpen(false)}
+                open={personalNotesOpen}
+                bodyStyle={{ padding: 0 }}
+            >
+                <div style={{ display: 'flex', height: '100%' }}>
+                    {/* Left: My Stuff */}
+                    <div style={{ width: '40%', borderRight: '1px solid #f0f0f0', padding: 24, overflowY: 'auto' }}>
+                        <Title level={5}>我的收藏 & 发布</Title>
+                        <List
+                            dataSource={notes.filter(n => n.userId === Number(user.id) || (n.collectedByUserIds && n.collectedByUserIds.includes(Number(user.id))))}
+                            renderItem={item => (
+                                <div style={{ marginBottom: 16, padding: 12, border: '1px solid #eee', borderRadius: 8 }}>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                                        <Text strong>{item.title}</Text>
+                                        <Tag>{item.userId === Number(user.id) ? "我的发布" : "我的收藏"}</Tag>
+                                    </div>
+                                    <Paragraph ellipsis={{ rows: 2 }} style={{ fontSize: 12, margin: '8px 0' }}>{item.content}</Paragraph>
+                                    <Space size="small">
+                                        <Button size="small" onClick={() => {
+                                            navigator.clipboard.writeText(item.content);
+                                            message.success("已复制内容");
+                                        }}>复制内容</Button>
+                                        {item.image && (
+                                            <Button size="small" onClick={() => {
+                                                 const a = document.createElement('a');
+                                                 a.href = item.image;
+                                                 a.download = `note_${item.id}.png`; 
+                                                 a.click();
+                                            }}>下载图片</Button>
+                                        )}
+                                    </Space>
+                                </div>
+                            )}
+                        />
+                    </div>
+
+                    {/* Right: Editor */}
+                    <div style={{ flex: 1, padding: 24, display: 'flex', flexDirection: 'column' }}>
+                        <Title level={5}>个人笔记编辑 (仅自行可见)</Title>
+                         <Input 
+                            placeholder="笔记名称" 
+                            style={{ marginBottom: 16 }} 
+                            value={personalNoteDraft.title}
+                            onChange={e => setPersonalNoteDraft({...personalNoteDraft, title: e.target.value})}
+                        />
+                        <Input.TextArea 
+                            placeholder="输入内容..." 
+                            style={{ flex: 1, marginBottom: 16, resize: 'none' }} 
+                            value={personalNoteDraft.content}
+                            onChange={e => setPersonalNoteDraft({...personalNoteDraft, content: e.target.value})}
+                        />
+                         <div style={{ marginBottom: 16 }}>
+                                <label style={{ cursor: 'pointer', color: '#1890ff', display: 'flex', alignItems: 'center', gap: 4 }}>
+                                    <PictureOutlined />
+                                    <span>上传图片</span>
+                                    <input type="file" accept="image/*" style={{ display: 'none' }} onChange={(e) => {
+                                        const file = e.target.files[0];
+                                         if (file) {
+                                            const reader = new FileReader();
+                                            reader.onload = (evt) => setPersonalNoteDraft({...personalNoteDraft, image: evt.target.result});
+                                            reader.readAsDataURL(file);
+                                        }
+                                    }} />
+                                </label>
+                                {personalNoteDraft.image && <img src={personalNoteDraft.image} style={{ height: 60, marginTop: 8 }} alt="preview" />}
+                         </div>
+
+                        <Button type="primary" onClick={async () => {
+                             if(!personalNoteDraft.title || !personalNoteDraft.content) return message.warning("请填写完整");
+                             try {
+                                await createNote(roomId, {
+                                    userId: user.id,
+                                    title: personalNoteDraft.title,
+                                    content: personalNoteDraft.content,
+                                    image: personalNoteDraft.image
+                                });
+                                message.success("已共享到笔记广场");
+                                setPersonalNoteDraft({ title: "", content: "", image: null });
+                                refreshAll();
+                             } catch(e) {
+                                message.error("共享失败");
+                             }
+                        }}>共享到笔记广场</Button>
+                    </div>
+                </div>
+            </Drawer>
         </div>
     );
 }
