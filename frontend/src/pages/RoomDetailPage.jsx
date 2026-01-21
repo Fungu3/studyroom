@@ -40,10 +40,13 @@ import {
     PictureOutlined,
     LikeOutlined,
     LikeFilled,
-    SendOutlined
+    SendOutlined,
+    EditOutlined,
+    ShareAltOutlined,
+    DeleteOutlined
 } from "@ant-design/icons";
 
-import { getRoom, createPomodoro, listPomodoros, getCoins, listNotes, createNote, collectNote, addNoteComment, likeNoteComment } from "../api/rooms";
+import { getRoom, createPomodoro, listPomodoros, getCoins, listNotes, createNote, collectNote, addNoteComment, likeNoteComment, listPersonalNotes, addPersonalNote, sharePersonalNote, updatePersonalNote } from "../api/rooms";
 import "./RoomDetailPage.css";
 
 const { Text, Title, Paragraph } = Typography;
@@ -54,6 +57,8 @@ const formatTime = (seconds) => {
     const s = safe % 60;
     return `${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
 };
+
+const toArray = (value) => (Array.isArray(value) ? value : []);
 
 export default function RoomDetailPage() {
     const { id } = useParams();
@@ -108,6 +113,17 @@ export default function RoomDetailPage() {
     // Personal Notes Module
     const [personalNotesOpen, setPersonalNotesOpen] = useState(false);
     const [personalNoteDraft, setPersonalNoteDraft] = useState({ title: "", content: "", image: null });
+    const [personalNotes, setPersonalNotes] = useState([]);
+    const [personalNoteMode, setPersonalNoteMode] = useState('list'); // 'list', 'create', 'edit'
+
+    // Load personal notes when drawer opens
+    useEffect(() => {
+        if (personalNotesOpen && user?.id) {
+            listPersonalNotes(user.id)
+                .then((list) => setPersonalNotes(toArray(list)))
+                .catch(console.error);
+        }
+    }, [personalNotesOpen, user?.id]);
 
     // --- Pomodoro State ---
     const [pomoStatus, setPomoStatus] = useState("idle"); // idle, running, paused
@@ -304,13 +320,13 @@ export default function RoomDetailPage() {
             title: values.title,
             done: false
         };
-        setTasks([newTask, ...tasks]);
+        setTasks([newTask, ...toArray(tasks)]);
         setTaskModalOpen(false);
         taskForm.resetFields();
     };
 
     const toggleTask = (id) => {
-        setTasks(tasks.map(t => t.id === id ? { ...t, done: !t.done } : t));
+        setTasks(toArray(tasks).map(t => t.id === id ? { ...t, done: !t.done } : t));
     };
 
     const toggleSidebar = (panel) => {
@@ -376,7 +392,7 @@ export default function RoomDetailPage() {
                         <Title level={5} style={{ marginBottom: 16 }}>💬 房间聊天</Title>
                         <div style={{ flex: 1, overflowY: 'auto', marginBottom: 12 }}>
                             <List
-                                dataSource={chatMessages}
+                                dataSource={toArray(chatMessages)}
                                 split={false}
                                 renderItem={m => (
                                     <List.Item style={{ padding: '8px 0', border: 'none' }}>
@@ -414,7 +430,7 @@ export default function RoomDetailPage() {
                     <div>
                         <Title level={5} style={{ marginBottom: 16 }}>👥 在线成员</Title>
                          <List
-                            dataSource={members}
+                                     dataSource={toArray(members)}
                             renderItem={m => (
                                 <List.Item>
                                     <div style={{ display: 'flex', justifyContent: 'space-between', width: '100%', alignItems: 'center' }}>
@@ -464,7 +480,7 @@ export default function RoomDetailPage() {
                             <div style={{ maxHeight: 300, overflowY: 'auto' }}>
                                 <List
                                     size="small"
-                                    dataSource={pomodoros}
+                                    dataSource={toArray(pomodoros)}
                                     renderItem={p => (
                                         <List.Item>
                                             <Space>
@@ -520,7 +536,7 @@ export default function RoomDetailPage() {
                         {/* Notes Feed */}
                         <div style={{ flex: 1, overflowY: 'auto' }}>
                             <List
-                                dataSource={notes}
+                                dataSource={toArray(notes)}
                                 itemLayout="vertical"
                                 renderItem={item => (
                                     <NoteItem 
@@ -689,7 +705,7 @@ export default function RoomDetailPage() {
                                 }}
                              >
                                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8, padding: '0 4px', borderBottom: '1px solid #f0f0f0', paddingBottom: 8 }}>
-                                    <Text type="secondary" style={{fontSize: 12}}>待完成: {tasks.filter(t => !t.done).length}</Text>
+                                    <Text type="secondary" style={{fontSize: 12}}>待完成: {toArray(tasks).filter(t => !t.done).length}</Text>
                                     <Tooltip title="添加任务">
                                         <Button 
                                             type="text" size="small" icon={<PlusOutlined />} 
@@ -700,7 +716,7 @@ export default function RoomDetailPage() {
                                 </div>
                                 <List
                                     size="small"
-                                    dataSource={tasks}
+                                    dataSource={toArray(tasks)}
                                     locale={{ emptyText: <div style={{color:'#ccc', padding: '10px 0'}}>暂无任务，休息一下~</div> }}
                                     renderItem={t => (
                                         <List.Item 
@@ -846,7 +862,7 @@ export default function RoomDetailPage() {
                     <div style={{ width: '40%', borderRight: '1px solid #f0f0f0', padding: 24, overflowY: 'auto' }}>
                         <Title level={5}>我的收藏 & 发布</Title>
                         <List
-                            dataSource={notes.filter(n => n.userId === Number(user.id) || (n.collectedByUserIds && n.collectedByUserIds.includes(Number(user.id))))}
+                            dataSource={toArray(notes).filter(n => n.userId === Number(user.id) || (n.collectedByUserIds && n.collectedByUserIds.includes(Number(user.id))))}
                             renderItem={item => (
                                 <div style={{ marginBottom: 16, padding: 12, border: '1px solid #eee', borderRadius: 8 }}>
                                     <div style={{ display: 'flex', justifyContent: 'space-between' }}>
@@ -873,53 +889,157 @@ export default function RoomDetailPage() {
                         />
                     </div>
 
-                    {/* Right: Editor */}
-                    <div style={{ flex: 1, padding: 24, display: 'flex', flexDirection: 'column' }}>
-                        <Title level={5}>个人笔记编辑 (仅自行可见)</Title>
-                         <Input 
-                            placeholder="笔记名称" 
-                            style={{ marginBottom: 16 }} 
-                            value={personalNoteDraft.title}
-                            onChange={e => setPersonalNoteDraft({...personalNoteDraft, title: e.target.value})}
-                        />
-                        <Input.TextArea 
-                            placeholder="输入内容..." 
-                            style={{ flex: 1, marginBottom: 16, resize: 'none' }} 
-                            value={personalNoteDraft.content}
-                            onChange={e => setPersonalNoteDraft({...personalNoteDraft, content: e.target.value})}
-                        />
-                         <div style={{ marginBottom: 16 }}>
-                                <label style={{ cursor: 'pointer', color: '#1890ff', display: 'flex', alignItems: 'center', gap: 4 }}>
-                                    <PictureOutlined />
-                                    <span>上传图片</span>
-                                    <input type="file" accept="image/*" style={{ display: 'none' }} onChange={(e) => {
-                                        const file = e.target.files[0];
-                                         if (file) {
-                                            const reader = new FileReader();
-                                            reader.onload = (evt) => setPersonalNoteDraft({...personalNoteDraft, image: evt.target.result});
-                                            reader.readAsDataURL(file);
-                                        }
-                                    }} />
-                                </label>
-                                {personalNoteDraft.image && <img src={personalNoteDraft.image} style={{ height: 60, marginTop: 8 }} alt="preview" />}
-                         </div>
+                    {/* Right: Personal Notes */}
+                    <div style={{ flex: 1, padding: 24, display: 'flex', flexDirection: 'column', backgroundColor: '#fff' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+                            <Title level={5} style={{ margin: 0 }}>个人笔记</Title>
+                            {personalNoteMode === 'list' && (
+                                <Button 
+                                    type="text" 
+                                    icon={<PlusOutlined />} 
+                                    onClick={() => {
+                                        setPersonalNoteDraft({ title: "", content: "", image: null });
+                                        setPersonalNoteMode('create');
+                                    }}
+                                >
+                                    添加笔记
+                                </Button>
+                            )}
+                            {personalNoteMode !== 'list' && (
+                                <Button 
+                                    type="text" 
+                                    onClick={() => setPersonalNoteMode('list')}
+                                >
+                                    返回列表
+                                </Button>
+                            )}
+                        </div>
 
-                        <Button type="primary" onClick={async () => {
-                             if(!personalNoteDraft.title || !personalNoteDraft.content) return message.warning("请填写完整");
-                             try {
-                                await createNote(roomId, {
-                                    userId: user.id,
-                                    title: personalNoteDraft.title,
-                                    content: personalNoteDraft.content,
-                                    image: personalNoteDraft.image
-                                });
-                                message.success("已共享到笔记广场");
-                                setPersonalNoteDraft({ title: "", content: "", image: null });
-                                refreshAll();
-                             } catch(e) {
-                                message.error("共享失败");
-                             }
-                        }}>共享到笔记广场</Button>
+                        {personalNoteMode === 'list' ? (
+                            <div style={{ flex: 1, overflowY: 'auto' }}>
+                                <List
+                                    dataSource={toArray(personalNotes)}
+                                    locale={{ emptyText: '暂无个人笔记' }}
+                                    renderItem={item => (
+                                        <div style={{ marginBottom: 16, border: '1px solid #eee', borderRadius: 8, padding: 16 }}>
+                                            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
+                                                <Text strong style={{ fontSize: 16 }}>{item.title}</Text>
+                                                <Space>
+                                                    <Button 
+                                                        size="small" 
+                                                        icon={<EditOutlined />} 
+                                                        onClick={() => {
+                                                            setPersonalNoteDraft({ 
+                                                                id: item.id, 
+                                                                title: item.title, 
+                                                                content: item.content, 
+                                                                image: item.imageUrl 
+                                                            });
+                                                            setPersonalNoteMode('edit');
+                                                        }}
+                                                    >
+                                                        编辑
+                                                    </Button>
+                                                    <Button 
+                                                        size="small" 
+                                                        icon={<ShareAltOutlined />} 
+                                                        onClick={async () => {
+                                                            try {
+                                                                await sharePersonalNote({ personalNoteId: item.id, roomId });
+                                                                message.success("已分享到笔记广场");
+                                                                refreshAll(); // Refresh shared notes
+                                                            } catch (e) {
+                                                                message.error("分享失败");
+                                                            }
+                                                        }}
+                                                    >
+                                                        分享
+                                                    </Button>
+                                                </Space>
+                                            </div>
+                                            <Paragraph ellipsis={{ rows: 3, expandable: true, symbol: '展开' }}>
+                                                {item.content}
+                                            </Paragraph>
+                                            {item.imageUrl && (
+                                                <img src={item.imageUrl} style={{ maxWidth: '100%', maxHeight: 200, borderRadius: 4, marginTop: 8 }} alt="note" />
+                                            )}
+                                        </div>
+                                    )}
+                                />
+                            </div>
+                        ) : (
+                            <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+                                <Input 
+                                    placeholder="笔记标题" 
+                                    style={{ marginBottom: 16 }} 
+                                    value={personalNoteDraft.title}
+                                    onChange={e => setPersonalNoteDraft({...personalNoteDraft, title: e.target.value})}
+                                />
+                                <Input.TextArea 
+                                    placeholder="输入笔记内容..." 
+                                    style={{ flex: 1, marginBottom: 16, resize: 'none' }} 
+                                    value={personalNoteDraft.content}
+                                    onChange={e => setPersonalNoteDraft({...personalNoteDraft, content: e.target.value})}
+                                />
+                                <div style={{ marginBottom: 16 }}>
+                                    <label style={{ cursor: 'pointer', color: '#1890ff', display: 'flex', alignItems: 'center', gap: 4 }}>
+                                        <PictureOutlined />
+                                        <span>上传图片</span>
+                                        <input type="file" accept="image/*" style={{ display: 'none' }} onChange={(e) => {
+                                            const file = e.target.files[0];
+                                             if (file) {
+                                                const reader = new FileReader();
+                                                reader.onload = (evt) => setPersonalNoteDraft({...personalNoteDraft, image: evt.target.result});
+                                                reader.readAsDataURL(file);
+                                            }
+                                        }} />
+                                    </label>
+                                    {personalNoteDraft.image && (
+                                        <div style={{ marginTop: 8, position: 'relative', display: 'inline-block' }}>
+                                            <img src={personalNoteDraft.image} style={{ height: 100, borderRadius: 4 }} alt="preview" />
+                                            <Button 
+                                                type="text" 
+                                                icon={<CloseOutlined />} 
+                                                size="small" 
+                                                style={{ position: 'absolute', top: 0, right: 0, color: '#fff', background: 'rgba(0,0,0,0.5)' }}
+                                                onClick={() => setPersonalNoteDraft({...personalNoteDraft, image: null})} 
+                                            />
+                                        </div>
+                                    )}
+                                </div>
+                                <Button type="primary" size="large" onClick={async () => {
+                                     if(!personalNoteDraft.title || !personalNoteDraft.content) return message.warning("请填写完整标题和内容");
+                                     try {
+                                        if (personalNoteMode === 'create') {
+                                            await addPersonalNote({
+                                                userId: user.id,
+                                                title: personalNoteDraft.title,
+                                                content: personalNoteDraft.content,
+                                                imageUrl: personalNoteDraft.image,
+                                                isShared: false
+                                            });
+                                            message.success("保存成功");
+                                        } else {
+                                            await updatePersonalNote({
+                                                noteId: personalNoteDraft.id,
+                                                title: personalNoteDraft.title,
+                                                content: personalNoteDraft.content,
+                                                imageUrl: personalNoteDraft.image
+                                            });
+                                            message.success("更新成功");
+                                        }
+                                        setPersonalNoteDraft({ title: "", content: "", image: null });
+                                        setPersonalNoteMode('list');
+                                        listPersonalNotes(user.id).then(setPersonalNotes);
+                                     } catch(e) {
+                                        console.error(e);
+                                        message.error("操作失败");
+                                     }
+                                }}>
+                                    {personalNoteMode === 'create' ? "保存笔记" : "保存修改"}
+                                </Button>
+                            </div>
+                        )}
                     </div>
                 </div>
             </Drawer>

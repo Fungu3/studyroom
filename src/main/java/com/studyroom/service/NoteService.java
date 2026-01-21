@@ -128,4 +128,13 @@ public class NoteService {
             personalNoteRepository.save(pNote);
         });
     }
+
+    public PersonalNote updatePersonalNote(Long noteId, String title, String content, String imageUrl) {
+        return personalNoteRepository.findById(noteId).map(note -> {
+            if (title != null) note.setTitle(title);
+            if (content != null) note.setContent(content);
+            if (imageUrl != null) note.setImageUrl(imageUrl);
+            return personalNoteRepository.save(note);
+        }).orElse(null);
+    }
 }

@@ -39,4 +39,11 @@ public class NoteDTOs {
         public Long personalNoteId;
         public Long roomId;
     }
+
+    public static class UpdatePersonalNoteRequest {
+        public Long noteId;
+        public String title;
+        public String content;
+        public String imageUrl;
+    }
 }

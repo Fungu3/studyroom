@@ -80,3 +80,24 @@ export function addNoteComment(roomId, noteId, payload) {
 export function likeNoteComment(roomId, commentId, userId) {
     return http.post(`${BASE}/${roomId}/notes/comments/${commentId}/like?userId=${userId}`);
 }
+
+// --- Personal Notes ---
+
+export function addPersonalNote(payload) {
+    // payload: { userId, title, content, imageUrl, isShared }
+    return http.post(`/api/note/personal/add`, payload);
+}
+
+export function listPersonalNotes(userId) {
+    return http.get(`/api/note/personal/list?userId=${userId}`);
+}
+
+export function sharePersonalNote(payload) {
+    // payload: { personalNoteId, roomId }
+    return http.post(`/api/note/personal/share`, payload);
+}
+
+export function updatePersonalNote(payload) {
+    // payload: { noteId, title, content, imageUrl }
+    return http.post(`/api/note/personal/update`, payload);
+}

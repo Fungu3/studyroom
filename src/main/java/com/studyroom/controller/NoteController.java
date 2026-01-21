@@ -86,4 +86,12 @@ public class NoteController {
         noteService.sharePersonalNote(request.personalNoteId, request.roomId);
         return Result.success();
     }
+
+    @PostMapping("/personal/update")
+    public Result<PersonalNote> updatePersonalNote(@RequestBody UpdatePersonalNoteRequest request) {
+        PersonalNote note = noteService.updatePersonalNote(
+            request.noteId, request.title, request.content, request.imageUrl
+        );
+        return Result.success(note);
+    }
 }
