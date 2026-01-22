@@ -24,6 +24,9 @@ public class NoteShare {
     @Column(name = "room_id")
     private Long roomId;
 
+    @Column(name = "personal_note_id")
+    private Long personalNoteId;
+
     @Column(name = "create_time")
     private LocalDateTime createTime;
 
@@ -48,6 +51,8 @@ public class NoteShare {
     public void setUserId(Long userId) { this.userId = userId; }
     public Long getRoomId() { return roomId; }
     public void setRoomId(Long roomId) { this.roomId = roomId; }
+    public Long getPersonalNoteId() { return personalNoteId; }
+    public void setPersonalNoteId(Long personalNoteId) { this.personalNoteId = personalNoteId; }
     public LocalDateTime getCreateTime() { return createTime; }
     public void setCreateTime(LocalDateTime createTime) { this.createTime = createTime; }
     public Integer getCollectCount() { return collectCount; }

@@ -3,6 +3,7 @@ package com.studyroom.controller;
 import com.studyroom.dto.CreateRoomRequest;
 import com.studyroom.entity.Room;
 import com.studyroom.service.RoomService;
+import com.studyroom.ws.RoomRealtimeService;
 import jakarta.validation.Valid;
 import org.springframework.web.bind.annotation.*;
 
@@ -14,14 +15,21 @@ import java.util.List;
 public class RoomController {
 
     private final RoomService roomService;
+    private final RoomRealtimeService roomRealtimeService;
 
-    public RoomController(RoomService roomService) {
+    public RoomController(RoomService roomService, RoomRealtimeService roomRealtimeService) {
         this.roomService = roomService;
+        this.roomRealtimeService = roomRealtimeService;
     }
 
     @GetMapping
     public List<Room> list() {
-        return roomService.list();
+        List<Room> rooms = roomService.list();
+        rooms.forEach(room -> {
+            int count = roomRealtimeService.snapshotMembers(room.getId()).count();
+            room.setOnlineUsers(count);
+        });
+        return rooms;
     }
 
     @GetMapping("/{id}")

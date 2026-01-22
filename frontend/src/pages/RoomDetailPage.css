@@ -1,22 +1,29 @@
 
-/* Morandi Color Palette & Theme Variables */
+/* Macaron Color Palette & Theme Variables (Anime Style) */
 :root {
-  --morandi-bg: #EAEAEA;
-  --morandi-card-bg: #FFFFFF;
-  --morandi-text-primary: #5F6368;
-  --morandi-text-secondary: #8C8C8C;
-  --morandi-accent-blue: #93A9D1; /* Serenity */
-  --morandi-accent-green: #95B46A; /* Greenery */
-  --morandi-accent-pink: #D4A5A5; /* Old Rose */
-  --morandi-hover: #F0F2F5;
+  --morandi-bg: #F3F0FF;
+  --morandi-card-bg: rgba(255, 255, 255, 0.95);
+  --morandi-text-primary: #6A5ACD;
+  --morandi-text-secondary: #9FA8DA;
+  --morandi-accent-blue: #81D4FA;
+  --morandi-accent-green: #A5D6A7;
+  --morandi-accent-pink: #FFAB91;
+  --morandi-accent-yellow: #FFF59D;
+  --morandi-accent-purple: #CE93D8;
+  --morandi-hover: #FFF9C4;
+  --macaron-pink: #FFC1CC;
+  --macaron-blue: #A2E1EB;
+  --macaron-green: #BCE29E;
+  --macaron-yellow: #F9E8A2;
+  --macaron-purple: #D5C2EE;
 }
 
 .room-page {
   width: 100vw;
   height: 100vh;
-  background-color: #Fdfcf8; /* Warm light background */
+  background-color: #FFF0F5;
   overflow: hidden;
-  font-family: 'Helvetica Neue', Arial, sans-serif;
+  font-family: 'Comic Sans MS', 'Chalkboard SE', 'Varela Round', 'Nunito', sans-serif;
   color: var(--morandi-text-primary);
   display: flex;
   flex-direction: column;
@@ -25,44 +32,23 @@
 /* --- Top Navigation Bar --- */
 .top-nav {
   height: 60px;
-  background-color: rgba(255, 255, 255, 0.9);
-  backdrop-filter: blur(10px);
+  background-color: rgba(255, 255, 255, 0.6);
+  backdrop-filter: blur(8px);
   display: flex;
   align-items: center;
   justify-content: space-between;
   padding: 0 24px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  border-bottom: none;
   z-index: 100;
+  position: absolute;
+  top: 0;
+  width: 100%;
 }
 
 .nav-left, .nav-right {
   display: flex;
   align-items: center;
   gap: 16px;
-  width: 200px; /* Helper to center the middle text */
-}
-
-.nav-right {
-  justify-content: flex-end;
-}
-
-.nav-center {
-  flex: 1;
-  text-align: center;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-}
-
-.room-title {
-  font-size: 18px;
-  font-weight: 600;
-  color: var(--morandi-text-primary);
-}
-
-.online-count {
-  font-size: 12px;
-  color: var(--morandi-text-secondary);
 }
 
 /* --- Main Visual Area --- */
@@ -71,8 +57,10 @@
   display: flex;
   position: relative;
   overflow: hidden;
+  padding-top: 60px; /* Offset for absolute header */
 }
 
+/* Richer Anime Background */
 .immersive-zone {
   flex: 1;
   width: 100%;
@@ -82,137 +70,253 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(135deg, #fdfbfb 0%, #ebedee 100%); /* Subtle gradient placeholder */
+  /* Sky gradient */
+  background: linear-gradient(180deg, #bfe9ff 0%, #e6f7ff 50%, #f0fff4 100%);
   background-size: cover;
   background-position: center;
   transition: width 0.3s ease;
+  overflow: hidden;
+  z-index: 0;
 }
 
-/* Dynamic Background Effect (Simulated) */
+/* Dynamic Background Layer */
+.dynamic-bg-layer {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* Cloud SVG Styles */
+.bg-cloud {
+  position: absolute;
+  opacity: 0.75; /* 70%-80% opacity */
+  filter: drop-shadow(0 4px 12px rgba(255, 255, 255, 0.4));
+  animation: cloudDrift linear infinite;
+  color: #fff;
+}
+
+@keyframes cloudDrift {
+  from { transform: translateX(-120%) scale(0.9); }
+  to { transform: translateX(120vw) scale(1); }
+}
+
+/* Hot Air Balloon SVG Styles */
+.bg-balloon {
+  position: absolute;
+  z-index: 1;
+  animation: balloonFloat linear forwards;
+  filter: drop-shadow(0 8px 16px rgba(0,0,0,0.1));
+  width: 200px;
+  height: 240px;
+  background-image: url('/hot-air-balloon.png');
+  background-size: contain;
+  background-repeat: no-repeat;
+  background-position: center;
+}
+
+@keyframes balloonFloat {
+  0% { transform: translate(10vw, 110vh) rotate(-2deg); opacity: 0.9; }
+  25% { transform: translate(25vw, 75vh) rotate(2deg); }
+  50% { transform: translate(15vw, 50vh) rotate(-2deg); }
+  75% { transform: translate(30vw, 25vh) rotate(1deg); }
+  100% { transform: translate(50vw, -30vh) rotate(0deg); opacity: 0.9; }
+}
+
+
+/* Animated Background Elements (Pure CSS) */
 .immersive-zone::before {
   content: "";
   position: absolute;
-  top: 0; left: 0; right: 0; bottom: 0;
-  background: url('https://images.unsplash.com/photo-1505664194779-8beaceb93744?ixlib=rb-4.0.3&auto=format&fit=crop&w=1920&q=80') no-repeat center center;
-  background-size: cover;
-  opacity: 0.1; /* Very subtle texture */
+  width: 200%;
+  height: 100%;
+  bottom: 0;
+  left: 0;
+  /* Rolling hills / clouds representation using multiple radial gradients */
+  background-image: 
+    radial-gradient(circle at 25% 90%, #e1f5fe 10%, transparent 11%),
+    radial-gradient(circle at 75% 95%, #e1f5fe 15%, transparent 16%),
+    radial-gradient(circle at 50% 110%, #b3e5fc 25%, transparent 26%),
+    radial-gradient(circle at 10% 80%, rgba(255, 255, 255, 0.8) 5%, transparent 6%),
+    radial-gradient(circle at 90% 60%, rgba(255, 255, 255, 0.6) 8%, transparent 9%);
+  background-repeat: no-repeat;
   pointer-events: none;
+  animation: floatBackground 60s infinite linear;
+}
+
+.immersive-zone::after {
+  content: "☁️ ✨ ⭐";
+  position: absolute;
+  top: 10%;
+  left: 10%;
+  font-size: 40px;
+  color: transparent;
+  text-shadow: 
+    10vw 5vh 0 rgba(255,255,255,0.8),
+    30vw 10vh 0 rgba(255,255,255,0.6),
+    70vw 5vh 0 rgba(255,255,255,0.8),
+    85vw 15vh 0 rgba(255,255,255,0.7),
+    50vw 2vh 0 #FFF9C4; /* Yellow star */
+  opacity: 0.8;
+  animation: floatClouds 30s infinite alternate ease-in-out;
+  pointer-events: none;
+}
+
+@keyframes floatBackground {
+  0% { transform: translateX(0); }
+  50% { transform: translateX(-50px); }
+  100% { transform: translateX(0); }
+}
+
+@keyframes floatClouds {
+  0% { transform: translateY(0) translateX(0); }
+  100% { transform: translateY(-20px) translateX(20px); }
+}
+
+/* --- Styled Panels & Components (Unified) --- */
+.styled-panel {
+  background: var(--morandi-card-bg);
+  backdrop-filter: blur(12px);
+  border-radius: 24px;
+  border: 4px solid var(--macaron-purple);
+  box-shadow: 0 8px 24px rgba(106, 90, 205, 0.15);
+  font-family: 'Comic Sans MS', cursive;
 }
 
 .timer-container {
   text-align: center;
   z-index: 1;
+  background: rgba(255, 255, 255, 0.4);
+  padding: 40px 60px;
+  border-radius: 50px;
+  border: 5px solid #FFF;
+  backdrop-filter: blur(8px);
+  box-shadow: 0 12px 36px rgba(135, 206, 250, 0.3);
+  animation: slideUp 0.8s ease-out;
+}
+
+@keyframes slideUp {
+  from { transform: translateY(50px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
 }
 
 .timer-display {
-  font-size: 120px;
-  font-weight: 200;
-  color: var(--morandi-text-primary);
+  font-size: 140px;
+  font-weight: 800;
+  color: #FFF;
+  text-shadow: 
+    4px 4px 0px var(--macaron-pink), 
+    8px 8px 0px rgba(0,0,0,0.05);
+  font-family: 'Sniglet', 'Comic Sans MS', cursive;
   font-feature-settings: "tnum";
   user-select: none;
 }
 
 .timer-breathing {
-  animation: breathe 4s ease-in-out infinite;
+  animation: breathe 3s ease-in-out infinite;
 }
 
 @keyframes breathe {
-  0%, 100% { opacity: 0.8; transform: scale(1); }
-  50% { opacity: 1; transform: scale(1.02); }
+  0%, 100% { opacity: 0.9; transform: scale(1); }
+  50% { opacity: 1; transform: scale(1.03); }
 }
 
 .study-stats {
   margin-top: 24px;
   display: flex;
+  justify-content: center;
   gap: 32px;
 }
 
 .stat-item {
   text-align: center;
+  background: #FFF;
+  padding: 10px 20px;
+  border-radius: 20px;
+  box-shadow: 0 4px 8px rgba(0,0,0,0.05);
+  border: 2px solid #E1F5FE;
 }
 
 .stat-value {
   font-size: 24px;
-  font-weight: 600;
+  font-weight: 700;
   color: var(--morandi-accent-blue);
 }
 
 .stat-label {
-  font-size: 12px;
+  font-size: 14px;
+  font-weight: 600;
   color: var(--morandi-text-secondary);
 }
 
 /* --- Todo List Panel --- */
-.todo-drawer-btn {
-  position: absolute;
-  bottom: 0;
-  width: 100%;
-  text-align: center;
-  padding: 8px;
-  background: rgba(255,255,255,0.6);
-  cursor: pointer;
-  z-index: 10;
-  transition: background 0.3s;
-}
-.todo-drawer-btn:hover {
-  background: rgba(255,255,255,0.9);
-}
-
 .todo-panel {
   position: absolute;
-  bottom: 80px; /* Above control bar */
-  left: 50%;
-  transform: translateX(-50%);
-  width: 400px;
-  background: rgba(255, 255, 255, 0.95);
-  backdrop-filter: blur(10px);
-  border-radius: 12px;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+  top: 60px; /* Below header */
+  left: 24px;
+  width: 300px;
+  background: var(--morandi-card-bg);
+  backdrop-filter: blur(12px);
+  border-radius: 20px;
+  border: 3px solid var(--macaron-green);
+  box-shadow: 0 8px 20px rgba(165, 214, 167, 0.3);
   padding: 16px;
-  max-height: 300px;
+  max-height: 500px;
   overflow-y: auto;
-  z-index: 20;
+  z-index: 60;
+  transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
 /* --- Right Sidebar --- */
 .right-sidebar {
   height: 100%;
-  background: #FFFFFF;
-  border-left: 1px solid rgba(0,0,0,0.05);
+  background: rgba(255, 255, 255, 0.9);
+  border-left: 3px solid var(--macaron-blue);
   display: flex;
   transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  box-shadow: -2px 0 8px rgba(0,0,0,0.02);
+  box-shadow: -4px 0 20px rgba(129, 212, 250, 0.2);
   z-index: 90;
+  border-top-left-radius: 30px;
+  border-bottom-left-radius: 30px;
+  margin: 10px 0 10px 10px; /* Floating look */
+  backdrop-filter: blur(10px);
 }
 
 .sidebar-icons {
-  width: 60px;
+  width: 70px;
   display: flex;
   flex-direction: column;
   align-items: center;
   padding-top: 24px;
-  background: #F9F9F9;
-  border-right: 1px solid rgba(0,0,0,0.05);
+  background: transparent;
+  border-right: 2px dashed #E0E0E0;
 }
 
 .icon-btn {
-  width: 40px;
-  height: 40px;
+  width: 50px;
+  height: 50px;
   display: flex;
   align-items: center;
   justify-content: center;
-  border-radius: 12px;
-  margin-bottom: 16px;
+  border-radius: 50%; /* Circle */
+  margin-bottom: 20px;
   cursor: pointer;
-  color: var(--morandi-text-secondary);
-  font-size: 20px;
-  transition: all 0.3s;
+  color: var(--morandi-accent-blue);
+  background: #FFF;
+  border: 2px solid var(--macaron-blue);
+  font-size: 22px;
+  transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
 }
 
 .icon-btn:hover, .icon-btn.active {
-  background: var(--morandi-accent-blue);
+  background: var(--macaron-blue);
   color: white;
-  box-shadow: 0 4px 10px rgba(147, 169, 209, 0.4);
+  border-color: #4FC3F7;
+  box-shadow: 0 4px 15px rgba(129, 212, 250, 0.6);
+  transform: scale(1.15) rotate(10deg);
 }
 
 .sidebar-content {
@@ -221,7 +325,8 @@
   padding: 24px;
   opacity: 0;
   transition: opacity 0.2s;
-  background: #FFFFFF;
+  background: transparent;
+  font-family: 'Comic Sans MS', cursive;
 }
 
 .sidebar-content.visible {
@@ -233,42 +338,55 @@
 
 /* Reused button styles for timer controls */
 .control-btn-circle {
-  width: 48px;
-  height: 48px;
-  border-radius: 50%;
+  width: 56px;
+  height: 56px;
+  border-radius: 20px; /* Squircle */
   display: flex;
   align-items: center;
   justify-content: center;
-  border: none;
+  border: 3px solid #FFF;
   cursor: pointer;
   transition: transform 0.2s, box-shadow 0.2s;
-  font-size: 20px;
+  font-size: 24px;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.1);
 }
 
 .btn-start {
   background: var(--morandi-accent-green);
   color: white;
 }
-.btn-start:hover:not(:disabled) { box-shadow: 0 4px 12px rgba(149, 180, 106, 0.4); transform: scale(1.05); }
+.btn-start:hover:not(:disabled) { 
+  box-shadow: 0 6px 16px rgba(165, 214, 167, 0.6); 
+  transform: scale(1.1) translateY(-2px); 
+}
 
 .btn-pause {
   background: var(--morandi-accent-pink);
   color: white;
 }
-.btn-pause:hover:not(:disabled) { box-shadow: 0 4px 12px rgba(212, 165, 165, 0.4); transform: scale(1.05); }
+.btn-pause:hover:not(:disabled) { 
+  box-shadow: 0 6px 16px rgba(255, 171, 145, 0.6); 
+  transform: scale(1.1) translateY(-2px); 
+}
 
 .btn-reset {
-  background: #F0F0F0;
+  background: #FFF;
   color: var(--morandi-text-secondary);
+  border: 2px dashed #BDBDBD;
 }
-.btn-reset:hover { background: #E0E0E0; }
+.btn-reset:hover { 
+  background: #F5F5F5; 
+  border-color: var(--morandi-text-primary);
+  transform: rotate(-10deg);
+}
 
 .btn-start.disabled, .btn-pause.disabled {
     cursor: not-allowed;
-    opacity: 0.5;
+    opacity: 0.6;
+    filter: grayscale(0.5);
 }
 
 /* Removed task-fab as it is now integrated into todo-drawer-btn */
 
 .resize-handle-hover { transition: background 0.2s; }
-.resize-handle-hover:hover { background: rgba(0,0,0,0.1); }
+.resize-handle-hover:hover { background: rgba(106, 90, 205, 0.2); }

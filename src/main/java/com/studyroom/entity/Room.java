@@ -12,7 +12,13 @@ public class Room {
     private Long id;
 
     @Column(nullable = false, length = 100)
-    private String name;
+    private String title;
+
+    @Column(nullable = false, length = 50)
+    private String subject;
+
+    @Column(length = 300)
+    private String description;
 
     @Column(name = "online_users")
     private Integer onlineUsers = 0;
@@ -27,8 +33,14 @@ public class Room {
 
     public Long getId() { return id; }
 
-    public String getName() { return name; }
-    public void setName(String name) { this.name = name; }
+    public String getTitle() { return title; }
+    public void setTitle(String title) { this.title = title; }
+
+    public String getSubject() { return subject; }
+    public void setSubject(String subject) { this.subject = subject; }
+
+    public String getDescription() { return description; }
+    public void setDescription(String description) { this.description = description; }
 
     public Integer getOnlineUsers() { return onlineUsers; }
     public void setOnlineUsers(Integer onlineUsers) { this.onlineUsers = onlineUsers; }

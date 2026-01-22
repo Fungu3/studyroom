@@ -1,6 +1,8 @@
 package com.studyroom.controller;
 
 import com.studyroom.dto.*;
+import com.studyroom.dto.NoteDTOs.CommentView;
+import com.studyroom.dto.NoteDTOs.NoteShareView;
 import com.studyroom.entity.Comment;
 import com.studyroom.entity.NoteShare;
 import com.studyroom.service.NoteService;
@@ -10,6 +12,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
 
@@ -44,8 +47,8 @@ public class RoomActivityController {
     // --- Note Endpoints ---
 
     @GetMapping("/notes")
-    public List<NoteShare> getNotes(@PathVariable Long roomId) {
-        return noteService.getRoomNotes(roomId);
+    public List<NoteShareView> getNotes(@PathVariable Long roomId) {
+        return noteService.getRoomNotesWithMeta(roomId);
     }
 
     @PostMapping("/notes")
@@ -65,8 +68,29 @@ public class RoomActivityController {
         return noteService.addComment(req.getUserId(), noteId, req.getContent(), req.getParentCommentId());
     }
 
+    @GetMapping("/notes/{noteId}/comments")
+    public List<CommentView> getComments(@PathVariable Long roomId, @PathVariable Long noteId) {
+        return noteService.getNoteCommentsWithUser(noteId);
+    }
+
     @PostMapping("/notes/comments/{commentId}/like")
     public void likeComment(@PathVariable Long roomId, @PathVariable Long commentId, @RequestParam(required = false) Long userId) {
         noteService.likeComment(commentId);
+    }
+
+    @DeleteMapping("/notes/{noteId}")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void deleteNote(@PathVariable Long roomId, @PathVariable Long noteId, @RequestParam Long userId) {
+        if (!noteService.deleteNote(roomId, noteId, userId)) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Not allowed");
+        }
+    }
+
+    @DeleteMapping("/notes/comments/{commentId}")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void deleteComment(@PathVariable Long roomId, @PathVariable Long commentId, @RequestParam Long userId) {
+        if (!noteService.deleteComment(commentId, userId)) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Not allowed");
+        }
     }
 }

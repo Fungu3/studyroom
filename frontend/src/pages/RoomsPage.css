@@ -1,0 +1,157 @@
+/* 
+  RoomsPage Specific Styles 
+  Background: Light Blue #E3F4FF to Light Pink #FFE8F2 gradient
+  Optimization: Added subtle texture
+*/
+.kawaii-page-container {
+  position: relative;
+  min-height: calc(100vh - 64px); 
+  padding: 24px;
+  background: 
+    radial-gradient(circle at 15% 50%, rgba(255, 255, 255, 0.4) 0%, transparent 20%),
+    radial-gradient(circle at 85% 30%, rgba(255, 255, 255, 0.4) 0%, transparent 20%),
+    linear-gradient(180deg, #E3F4FF 0%, #FFE8F2 100%);
+  overflow: hidden; 
+  font-family: 'Varela Round', sans-serif;
+}
+
+/* Add texture overlay */
+.kawaii-page-container::before {
+  content: "";
+  position: absolute;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background-image: 
+    radial-gradient(rgba(255, 255, 255, 0.3) 2px, transparent 2px),
+    radial-gradient(rgba(255, 255, 255, 0.3) 2px, transparent 2px);
+  background-size: 50px 50px;
+  background-position: 0 0, 25px 25px;
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* Floating Elements Container */
+.kawaii-decorations {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none; 
+  z-index: 0;
+  overflow: hidden;
+}
+
+/* Update Cloud Animation to be slower and bobbing */
+@keyframes floatCloud {
+  0% { transform: translate(-20vw, 0); }
+  25% { transform: translate(15vw, -15px); }
+  50% { transform: translate(50vw, 0); }
+  75% { transform: translate(85vw, -15px); }
+  100% { transform: translate(120vw, 0); }
+}
+
+/* Detailed Cloud Style */
+.kawaii-cloud {
+  position: absolute;
+  color: rgba(255, 255, 255, 0.9);
+  /* Range 80-120px handled in JSX or here */
+  font-size: 100px; 
+  animation: floatCloud 60s linear infinite;
+  filter: drop-shadow(0 4px 8px rgba(255,255,255,0.6));
+}
+
+/* Updated Star Animation: Fast Left-to-Right swipe */
+@keyframes starSwipe {
+  0% { transform: translateX(-10vw) translateY(0); opacity: 0; }
+  10% { opacity: 1; }
+  90% { opacity: 1; }
+  100% { transform: translateX(110vw) translateY(10vh); opacity: 0; } 
+  /* Added slight translateY for natural drift, mainly Left->Right */
+}
+
+/* Book Animation: Appear and Disappear */
+@keyframes appearDisappear {
+  0% { opacity: 0; transform: scale(0.8) rotate(-10deg); }
+  20% { opacity: 1; transform: scale(1) rotate(0deg); }
+  80% { opacity: 1; transform: scale(1) rotate(10deg); }
+  100% { opacity: 0; transform: scale(0.8) rotate(20deg); }
+}
+
+.kawaii-star {
+  position: absolute;
+  color: #FFFACD; 
+  /* Size default, overridden by inline usually but set base here */
+  font-size: 20px; 
+  animation: starSwipe 12s linear infinite; 
+  /* Glowing effect */
+  filter: drop-shadow(0 0 5px rgba(255, 250, 205, 0.8));
+  text-shadow: 0 0 8px #FFFACD;
+}
+
+.kawaii-book {
+  position: absolute;
+  color: #E8FFF2; 
+  font-size: 28px;
+  animation: appearDisappear 35s ease-in-out infinite; 
+}
+
+/* Room Cards */
+.kawaii-card-wrapper {
+  transition: all 0.3s ease;
+  z-index: 1; 
+  position: relative;
+}
+
+/* 
+  Card Base
+*/
+.kawaii-card .ant-card {
+  background-color: #E3F4FF !important;
+  border: 2px solid #FFE8F2 !important;
+  border-radius: 16px !important;
+  box-shadow: 0 4px 8px rgba(0,0,0,0.05) !important;
+  font-family: 'Fredoka', 'Varela Round', sans-serif !important;
+  transition: all 0.3s ease !important;
+  overflow: hidden;
+}
+
+.kawaii-card:hover .ant-card {
+  transform: translateY(-4px); /* Slightly more movement */
+  box-shadow: 0 8px 20px rgba(0,0,0,0.1) !important;
+}
+
+.kawaii-card .ant-card-cover {
+  padding: 8px 8px 0 8px;
+  background-color: transparent;
+}
+.kawaii-card .ant-card-cover > * {
+  border-radius: 8px !important;
+}
+
+/* 
+   Card Title Optimization:
+   Dark Grey #555555, Size 20px, Bold.
+   Removed white text and pink stroke.
+*/
+.kawaii-card-title {
+  color: #555555 !important;
+  font-weight: 700;
+  font-size: 20px; 
+  font-family: 'Fredoka', sans-serif;
+  letter-spacing: 0.5px;
+  margin-bottom: 4px;
+  -webkit-text-stroke: 0 !important;
+  text-shadow: none !important;
+}
+
+/* 
+   Card Meta Info Optimization:
+   Light Grey #888888, Size 14px.
+*/
+.kawaii-card-info {
+  color: #888888;
+  font-size: 14px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}

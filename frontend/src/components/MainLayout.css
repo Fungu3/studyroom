@@ -1,0 +1,89 @@
+/* MainLayout.css */
+@import url('https://fonts.googleapis.com/css2?family=Fredoka:wght@300;400;500;600;700&family=Varela+Round&display=swap');
+
+/* Top Navigation Bar */
+.kawaii-header {
+  /* Prompt: Light Pink #FFE8F2 gradient background */
+  background: linear-gradient(90deg, #FFE8F2 0%, #fff0f5 100%) !important;
+  height: 60px !important;
+  line-height: 60px !important;
+  padding: 0 24px;
+  border-radius: 0 0 8px 8px; /* Maybe rounded bottom? Prompt says "Radius 8px", likely for the container if floating or just generally rounded corners? Usually headers are flat on top. Let's add radius to bottom or just assume user meant the bar itself looks rounded floating? "Height 60px, Radius 8px". I'll apply border-radius. */
+  border-radius: 8px !important; /* As requested */
+  margin: 10px 20px 0 20px; /* Make it floating to show off radius? Or just stick to top?
+     The prompt says "Top Navigation Bar ... Height 60px, Radius 8px". 
+     Standard full width headers don't show radius well unless floating. 
+     I will make it float slightly or just sit at top with radius. 
+     Let's add margin so radius is visible.
+  */
+  display: flex;
+  align-items: center;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+}
+
+.kawaii-header-title {
+  color: #555555 !important;
+  font-family: 'Fredoka', 'Varela Round', cursive;
+  font-weight: 700;
+  font-size: 16px;
+  -webkit-text-stroke: 0 !important;
+  text-shadow: none !important;
+}
+
+/* Nav Buttons Text */
+.kawaii-nav-btn span {
+  color: #555555;
+  font-family: 'Varela Round', sans-serif;
+  font-size: 16px;
+  font-weight: 600;
+}
+.kawaii-nav-btn.ant-btn-text:hover {
+  background: rgba(255, 255, 255, 0.5) !important;
+}
+.kawaii-nav-btn,
+.kawaii-nav-btn:focus,
+.kawaii-nav-btn:focus-visible,
+.kawaii-nav-btn:active,
+.kawaii-nav-btn.ant-btn-text:focus,
+.kawaii-nav-btn.ant-btn-text:focus-visible,
+.kawaii-nav-btn.ant-btn-text:active {
+  outline: none !important;
+  box-shadow: none !important;
+}
+
+/* Create Room Button */
+.kawaii-create-btn {
+  background-color: #E3F4FF !important;
+  border: none !important;
+  border-radius: 8px !important;
+  font-family: 'Fredoka', sans-serif !important;
+  font-weight: 600 !important;
+  transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275) !important; 
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  overflow: hidden;
+}
+.kawaii-create-btn:focus,
+.kawaii-create-btn:focus-visible,
+.kawaii-create-btn:active {
+  outline: none !important;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1) !important;
+}
+
+.kawaii-create-btn span {
+  /* Prompt: Button Text Dark Grey #555555, Size 15px */
+  color: #555555 !important;
+  font-size: 15px; 
+  text-shadow: none !important;
+  -webkit-text-stroke: 0 !important;
+}
+
+.kawaii-create-btn:hover {
+  transform: scale(1.05); /* 1.05x magnification */
+  box-shadow: 0 4px 12px rgba(135, 206, 250, 0.4) !important; /* Deepen shadow */
+}
+
+/* Icons color override for header */
+.kawaii-icon {
+  color: #555555 !important;
+  font-size: 20px;
+}

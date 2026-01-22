@@ -1,4 +1,4 @@
-CREATE TABLE IF NOT EXISTS users (
+CREATE TABLE users (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
     username VARCHAR(50) NOT NULL UNIQUE,
     password VARCHAR(100) NOT NULL,
@@ -9,32 +9,35 @@ CREATE TABLE IF NOT EXISTS users (
     total_study_time_minutes BIGINT DEFAULT 0
 );
 
-CREATE TABLE IF NOT EXISTS room (
+CREATE TABLE room (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
-    name VARCHAR(100) NOT NULL,
+    title VARCHAR(100) NOT NULL,
+    subject VARCHAR(50) NOT NULL,
+    description VARCHAR(300),
     online_users INT DEFAULT 0,
     created_at TIMESTAMP NOT NULL
 );
 
-CREATE TABLE IF NOT EXISTS note_share (
+CREATE TABLE note_share (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
     title VARCHAR(255),
     content TEXT,
     image_url TEXT,
     user_id BIGINT,
     room_id BIGINT,
+    personal_note_id BIGINT,
     create_time TIMESTAMP,
     collect_count INT DEFAULT 0
 );
 
-CREATE TABLE IF NOT EXISTS note_collect (
+CREATE TABLE note_collect (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
     note_id BIGINT,
     user_id BIGINT,
     create_time TIMESTAMP
 );
 
-CREATE TABLE IF NOT EXISTS comment (
+CREATE TABLE comment (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
     note_id BIGINT,
     user_id BIGINT,
@@ -44,7 +47,7 @@ CREATE TABLE IF NOT EXISTS comment (
     like_count INT DEFAULT 0
 );
 
-CREATE TABLE IF NOT EXISTS personal_note (
+CREATE TABLE personal_note (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
     title VARCHAR(255),
     content TEXT,
@@ -54,12 +57,22 @@ CREATE TABLE IF NOT EXISTS personal_note (
     create_time TIMESTAMP
 );
 
-CREATE TABLE IF NOT EXISTS coin_transactions (
-	id BIGINT AUTO_INCREMENT PRIMARY KEY,
-	room_id BIGINT NOT NULL,
-	user_id BIGINT,
-	delta INT NOT NULL,
-	reason VARCHAR(255) NOT NULL,
-	created_at TIMESTAMP NOT NULL
+CREATE TABLE pomodoros (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    room_id BIGINT NOT NULL,
+    user_id BIGINT,
+    duration_minutes INT NOT NULL,
+    result VARCHAR(20) NOT NULL,
+    awarded_coins INT,
+    created_at TIMESTAMP NOT NULL
+);
+
+CREATE TABLE coin_transactions (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    room_id BIGINT NOT NULL,
+    user_id BIGINT NOT NULL,
+    delta INT NOT NULL,
+    reason VARCHAR(255) NOT NULL,
+    created_at TIMESTAMP NOT NULL
 );
 

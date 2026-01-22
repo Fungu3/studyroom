@@ -19,9 +19,9 @@ public class RoomService {
 
     public Room create(CreateRoomRequest req) {
         Room room = new Room();
-        room.setName(req.getTitle());
-        // room.setSubject(req.getSubject()); // Removed in new schema
-        // room.setDescription(req.getDescription()); // Removed in new schema
+        room.setTitle(req.getTitle());
+        room.setSubject(req.getSubject());
+        room.setDescription(req.getDescription());
         return roomRepository.save(room);
     }
 
@@ -37,9 +37,9 @@ public class RoomService {
     public Room update(Long id, CreateRoomRequest req) {
         Room room = roomRepository.findById(id)
                 .orElseThrow(() -> new RoomNotFoundException(id));
-        room.setName(req.getTitle());
-        // room.setSubject(req.getSubject());
-        // room.setDescription(req.getDescription());
+        room.setTitle(req.getTitle());
+        room.setSubject(req.getSubject());
+        room.setDescription(req.getDescription());
         return roomRepository.save(room);
     }
 

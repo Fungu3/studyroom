@@ -94,4 +94,13 @@ public class NoteController {
         );
         return Result.success(note);
     }
+
+    @PostMapping("/personal/delete")
+    public Result<Void> deletePersonalNote(@RequestBody DeletePersonalNoteRequest request) {
+        boolean ok = noteService.deletePersonalNote(request.noteId, request.userId);
+        if (!ok) {
+            return Result.error(403, "Not allowed");
+        }
+        return Result.success();
+    }
 }

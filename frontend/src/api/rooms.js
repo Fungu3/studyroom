@@ -73,6 +73,10 @@ export function collectNote(roomId, noteId, userId) {
     return http.post(`${BASE}/${roomId}/notes/${noteId}/collect?userId=${userId}`);
 }
 
+export function deleteNote(roomId, noteId, userId) {
+  return http.del(`${BASE}/${roomId}/notes/${noteId}?userId=${userId}`);
+}
+
 export function addNoteComment(roomId, noteId, payload) {
     return http.post(`${BASE}/${roomId}/notes/${noteId}/comments`, payload);
 }
@@ -81,23 +85,32 @@ export function likeNoteComment(roomId, commentId, userId) {
     return http.post(`${BASE}/${roomId}/notes/comments/${commentId}/like?userId=${userId}`);
 }
 
+export function deleteNoteComment(roomId, commentId, userId) {
+  return http.del(`${BASE}/${roomId}/notes/comments/${commentId}?userId=${userId}`);
+}
+
 // --- Personal Notes ---
 
 export function addPersonalNote(payload) {
     // payload: { userId, title, content, imageUrl, isShared }
-    return http.post(`/api/note/personal/add`, payload);
+  return http.post(`/api/note/personal/add`, payload).then((res) => res?.data ?? res);
 }
 
 export function listPersonalNotes(userId) {
-    return http.get(`/api/note/personal/list?userId=${userId}`);
+  return http.get(`/api/note/personal/list?userId=${userId}`).then((res) => res?.data ?? res);
 }
 
 export function sharePersonalNote(payload) {
     // payload: { personalNoteId, roomId }
-    return http.post(`/api/note/personal/share`, payload);
+  return http.post(`/api/note/personal/share`, payload).then((res) => res?.data ?? res);
 }
 
 export function updatePersonalNote(payload) {
     // payload: { noteId, title, content, imageUrl }
-    return http.post(`/api/note/personal/update`, payload);
+  return http.post(`/api/note/personal/update`, payload).then((res) => res?.data ?? res);
+}
+
+export function deletePersonalNote(payload) {
+    // payload: { noteId, userId }
+  return http.post(`/api/note/personal/delete`, payload).then((res) => res?.data ?? res);
 }

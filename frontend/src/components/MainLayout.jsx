@@ -5,6 +5,7 @@ import { UserOutlined, BellOutlined, PlusOutlined, UnorderedListOutlined } from 
 import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { createRoom } from '../api/rooms';
 import dayjs from 'dayjs';
+import './MainLayout.css';
 
 const { Header, Content } = Layout;
 const { Title } = Typography;
@@ -17,27 +18,26 @@ export default function MainLayout({ children }) {
   const selectedKey = location.pathname.startsWith('/rooms') ? 'rooms' : '';
 
   return (
-    <Layout style={{ minHeight: '100vh' }}>
-      <Header style={{ display: 'flex', alignItems: 'center', padding: '0 24px', background: '#001529' }}>
+    <Layout style={{ minHeight: '100vh', background: 'transparent' }}>
+      <Header className="kawaii-header">
            <div style={{ marginRight: '40px' }}>
-             <Title level={4} style={{ color: 'white', margin: 0 }}>studyroom</Title>
+             <Title level={4} className="kawaii-header-title" style={{ margin: 0 }}>studyroom</Title>
            </div>
         
         <div style={{ flex: 1, display: 'flex', alignItems: 'center' }}>
           <ConfigProvider wave={{ disabled: true }}>
             <Button 
-            type="default"
-            className={`header-nav-btn ${selectedKey === 'rooms' ? 'header-nav-btn--active' : 'header-nav-btn--inactive'}`}
+            type="text"
+            className={`kawaii-nav-btn ${selectedKey === 'rooms' ? 'header-nav-btn--active' : ''}`}
             style={{ marginRight: 10 }}
-              icon={<UnorderedListOutlined />}
+              icon={<UnorderedListOutlined className="kawaii-icon" />}
               onClick={() => navigate('/rooms')}
             >
               房间列表
             </Button>
             <Button 
-              type="dashed" 
-              ghost 
-              icon={<PlusOutlined />}
+              className="kawaii-create-btn"
+              icon={<PlusOutlined style={{ color: '#fff' }} />}
               onClick={() => navigate('/rooms/create')}
             >
               创建房间
@@ -46,11 +46,11 @@ export default function MainLayout({ children }) {
         </div>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
-            <Badge dot>
-                <BellOutlined style={{ color: 'white', fontSize: '20px', cursor: 'pointer' }} />
+            <Badge dot color="#FFB6C1">
+                <BellOutlined className="kawaii-icon" style={{ cursor: 'pointer' }} />
             </Badge>
             <Link to="/personal">
-                <Avatar icon={<UserOutlined />} style={{ cursor: 'pointer', backgroundColor: '#87d068' }} />
+                <Avatar icon={<UserOutlined />} style={{ cursor: 'pointer', backgroundColor: '#FFE8F2', color: '#555555', border: '1px solid #FFB6C1' }} />
             </Link>
         </div>
       </Header>

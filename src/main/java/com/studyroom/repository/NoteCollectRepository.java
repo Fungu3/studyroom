@@ -8,4 +8,7 @@ import java.util.Optional;
 public interface NoteCollectRepository extends JpaRepository<NoteCollect, Long> {
     List<NoteCollect> findByUserIdOrderByCreateTimeDesc(Long userId);
     Optional<NoteCollect> findByNoteIdAndUserId(Long noteId, Long userId);
+    List<NoteCollect> findByNoteId(Long noteId);
+    void deleteByNoteId(Long noteId);
+    void deleteByNoteIdAndUserId(Long noteId, Long userId);
 }

@@ -1,5 +1,7 @@
 package com.studyroom.service;
 
+import com.studyroom.dto.NoteDTOs.CommentView;
+import com.studyroom.dto.NoteDTOs.NoteShareView;
 import com.studyroom.entity.*;
 import com.studyroom.repository.*;
 import org.springframework.stereotype.Service;
@@ -7,6 +9,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Collections;
 import java.util.List;
+import java.util.Objects;
 import java.util.stream.Collectors;
 
 @Service
@@ -46,6 +49,35 @@ public class NoteService {
         return noteShareRepository.findByRoomIdOrderByCreateTimeDesc(roomId);
     }
 
+    public List<NoteShareView> getRoomNotesWithMeta(Long roomId) {
+        List<NoteShare> notes = noteShareRepository.findByRoomIdOrderByCreateTimeDesc(roomId);
+        return notes.stream().map(note -> {
+            NoteShareView view = new NoteShareView();
+            view.id = note.getId();
+            view.title = note.getTitle();
+            view.content = note.getContent();
+            view.imageUrl = note.getImageUrl();
+            view.image = note.getImageUrl();
+            view.userId = note.getUserId();
+            view.roomId = note.getRoomId();
+            view.createTime = note.getCreateTime();
+            view.collectCount = note.getCollectCount();
+
+            userRepository.findById(note.getUserId()).ifPresent(user -> {
+                view.username = user.getUsername();
+                view.userAvatar = user.getAvatar();
+            });
+
+            view.comments = getNoteCommentsWithUser(note.getId());
+            view.collectedByUserIds = noteCollectRepository.findByNoteId(note.getId())
+                .stream()
+                .map(NoteCollect::getUserId)
+                .filter(Objects::nonNull)
+                .collect(Collectors.toList());
+            return view;
+        }).collect(Collectors.toList());
+    }
+
     // --- Comment ---
     public Comment addComment(Long userId, Long noteId, String content, Long replyTo) {
         Comment comment = new Comment();
@@ -60,6 +92,29 @@ public class NoteService {
         return commentRepository.findByNoteIdOrderByCreateTimeAsc(noteId);
     }
 
+    public List<CommentView> getNoteCommentsWithUser(Long noteId) {
+        return commentRepository.findByNoteIdOrderByCreateTimeAsc(noteId)
+            .stream()
+            .map(comment -> {
+                CommentView view = new CommentView();
+                view.id = comment.getId();
+                view.noteId = comment.getNoteId();
+                view.userId = comment.getUserId();
+                view.content = comment.getContent();
+                view.replyTo = comment.getReplyTo();
+                view.createTime = comment.getCreateTime();
+                view.createdAt = comment.getCreateTime();
+                view.likeCount = comment.getLikeCount();
+
+                userRepository.findById(comment.getUserId()).ifPresent(user -> {
+                    view.username = user.getUsername();
+                    view.userAvatar = user.getAvatar();
+                });
+                return view;
+            })
+            .collect(Collectors.toList());
+    }
+
     public void likeComment(Long commentId) {
         commentRepository.findById(commentId).ifPresent(comment -> {
             comment.setLikeCount(comment.getLikeCount() + 1);
@@ -69,24 +124,68 @@ public class NoteService {
 
     // --- Collect ---
     public void collectNote(Long userId, Long noteId) {
-        if (noteCollectRepository.findByNoteIdAndUserId(noteId, userId).isPresent()) {
-            return;
-        }
-
-        NoteCollect collect = new NoteCollect();
-        collect.setUserId(userId);
-        collect.setNoteId(noteId);
-        noteCollectRepository.save(collect);
-
         noteShareRepository.findById(noteId).ifPresent(note -> {
-            note.setCollectCount(note.getCollectCount() + 1);
-            noteShareRepository.save(note);
-            
-            userRepository.findById(note.getUserId()).ifPresent(publisher -> {
-                publisher.setCoins(publisher.getCoins() + 1);
-                userRepository.save(publisher);
+            if (note.getUserId() != null && note.getUserId().equals(userId)) {
+                return;
+            }
+
+            noteCollectRepository.findByNoteIdAndUserId(noteId, userId).ifPresentOrElse(existing -> {
+                noteCollectRepository.delete(existing);
+                note.setCollectCount(Math.max(0, note.getCollectCount() - 1));
+                noteShareRepository.save(note);
+
+                userRepository.findById(note.getUserId()).ifPresent(publisher -> {
+                    if (publisher.getCoins() != null && publisher.getCoins() > 0) {
+                        publisher.setCoins(publisher.getCoins() - 1);
+                        userRepository.save(publisher);
+                    }
+                });
+            }, () -> {
+                NoteCollect collect = new NoteCollect();
+                collect.setUserId(userId);
+                collect.setNoteId(noteId);
+                noteCollectRepository.save(collect);
+
+                note.setCollectCount(note.getCollectCount() + 1);
+                noteShareRepository.save(note);
+
+                userRepository.findById(note.getUserId()).ifPresent(publisher -> {
+                    publisher.setCoins(publisher.getCoins() + 1);
+                    userRepository.save(publisher);
+                });
             });
         });
+    }
+
+    public boolean deleteNote(Long roomId, Long noteId, Long userId) {
+        return noteShareRepository.findById(noteId).map(note -> {
+            if (note.getRoomId() == null || !note.getRoomId().equals(roomId)) {
+                return false;
+            }
+            if (note.getUserId() == null || !note.getUserId().equals(userId)) {
+                return false;
+            }
+            commentRepository.deleteByNoteId(noteId);
+            noteCollectRepository.deleteByNoteId(noteId);
+            if (note.getPersonalNoteId() != null) {
+                personalNoteRepository.findById(note.getPersonalNoteId()).ifPresent(pNote -> {
+                    pNote.setIsShared(false);
+                    personalNoteRepository.save(pNote);
+                });
+            }
+            noteShareRepository.delete(note);
+            return true;
+        }).orElse(false);
+    }
+
+    public boolean deleteComment(Long commentId, Long userId) {
+        return commentRepository.findById(commentId).map(comment -> {
+            if (comment.getUserId() == null || !comment.getUserId().equals(userId)) {
+                return false;
+            }
+            commentRepository.delete(comment);
+            return true;
+        }).orElse(false);
     }
 
     public List<NoteShare> getCollectedNotes(Long userId) {
@@ -121,12 +220,23 @@ public class NoteService {
             share.setImageUrl(pNote.getImageUrl());
             share.setUserId(pNote.getUserId());
             share.setRoomId(roomId);
+            share.setPersonalNoteId(pNote.getId());
             noteShareRepository.save(share);
 
             // Update status
             pNote.setIsShared(true);
             personalNoteRepository.save(pNote);
         });
+    }
+
+    public boolean deletePersonalNote(Long noteId, Long userId) {
+        return personalNoteRepository.findById(noteId).map(note -> {
+            if (note.getUserId() == null || !note.getUserId().equals(userId)) {
+                return false;
+            }
+            personalNoteRepository.delete(note);
+            return true;
+        }).orElse(false);
     }
 
     public PersonalNote updatePersonalNote(Long noteId, String title, String content, String imageUrl) {

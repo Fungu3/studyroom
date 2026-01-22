@@ -4,6 +4,7 @@ import { Card, Avatar, List, Typography, Row, Col, Progress, Button, Statistic, 
 import { UserOutlined, PayCircleOutlined, BookOutlined, CalendarOutlined } from '@ant-design/icons';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
 import { getUserInfo } from '../api/system';
+import './PersonalCenterPage.css';
 
 const { Title, Text, Link } = Typography;
 
@@ -94,34 +95,37 @@ export default function PersonalCenterPage() {
 
   const renderProfile = () => (
       <Space direction="vertical" size="large" style={{ width: '100%' }}>
-          <Card title="基本账户信息" bordered={false}>
+          <Card title="基本账户信息" bordered={false} className="cute-card">
               <Row gutter={16} align="middle">
                   <Col span={6} style={{ textAlign: 'center' }}>
-                      <Avatar size={80} icon={<UserOutlined />} />
-                      <div style={{ marginTop: 12, fontSize: 16 }}>{userInfo?.username || 'Guest'}</div>
+                      <div className="cute-avatar-wrapper">
+                        <Avatar size={80} icon={<UserOutlined />} className="cute-profile-avatar" style={{ backgroundColor: '#E3F4FF', color: '#555555' }} />
+                      </div>
+                      <div style={{ marginTop: 12, fontSize: 16, fontWeight: 'bold', color: '#555555' }}>{userInfo?.username || 'Guest'}</div>
                   </Col>
                   <Col span={18}>
                       <Row gutter={[16, 16]}>
                           <Col span={12}>
-                              <Statistic title="用户ID" value={userInfo?.id || '-'} prefix={<UserOutlined />} />
+                              <Statistic className="cute-stat-val cute-stat-title" title="用户ID" value={userInfo?.id || '-'} prefix={<UserOutlined />} />
                           </Col>
                           <Col span={12}>
-                              <Statistic title="注册天数" value={daysJoined} suffix="天" prefix={<CalendarOutlined />} />
+                              <Statistic className="cute-stat-val cute-stat-title" title="注册天数" value={daysJoined} suffix="天" prefix={<CalendarOutlined />} />
                           </Col>
                           <Col span={12}>
-                              <Statistic title="累计学习时长(分)" value={userInfo?.totalStudyTimeMinutes || 0} />
+                              <Statistic className="cute-stat-val cute-stat-title" title="累计学习时长(分)" value={userInfo?.totalStudyTimeMinutes || 0} />
                           </Col>
                           <Col span={12}>
-                              <Statistic title="当前金币" value={userInfo?.coins || 0} precision={2} prefix={<PayCircleOutlined />} valueStyle={{ color: '#faad14' }} />
+                              {/* Coin specific class added */}
+                              <Statistic className="cute-stat-coin cute-stat-title" title="当前金币" value={userInfo?.coins || 0} precision={2} prefix={<PayCircleOutlined />} />
                           </Col>
                       </Row>
                   </Col>
               </Row>
           </Card>
-          <Card title="安全与偏好" bordered={false}>
+          <Card title="安全与偏好" bordered={false} className="cute-card">
               <Row gutter={16}>
-                  <Col span={12}><Text type="secondary">邮箱</Text><div>{userInfo?.email || '未绑定'}</div></Col>
-                  <Col span={12}><Text type="secondary">手机号</Text><div>{userInfo?.phone || '未绑定'}</div></Col>
+                  <Col span={12}><Text className="cute-text">邮箱</Text><div className="cute-text-aux" style={{ fontSize: 16 }}>{userInfo?.email || '未绑定'}</div></Col>
+                  <Col span={12}><Text className="cute-text">手机号</Text><div className="cute-text-aux" style={{ fontSize: 16 }}>{userInfo?.phone || '未绑定'}</div></Col>
               </Row>
           </Card>
       </Space>
@@ -131,18 +135,19 @@ export default function PersonalCenterPage() {
       <Space direction="vertical" size="large" style={{ width: '100%' }}>
           <Row gutter={16}>
               <Col span={10}>
-                  <Card title="相遇时光" bordered={false}>
-                      <Statistic title="我们已经相遇" value={daysJoined} suffix="天" prefix={<CalendarOutlined />} valueStyle={{ color: '#1890ff' }} />
+                  <Card title="相遇时光" bordered={false} className="cute-card">
+                      <Statistic className="cute-stat-val cute-stat-title" title="我们已经相遇" value={daysJoined} suffix="天" prefix={<CalendarOutlined />} />
                   </Card>
               </Col>
               <Col span={14}>
-                  <Card title="金币钱包" bordered={false} extra={<Space><Link onClick={showCoinRecords}>获取记录</Link> <Link>用途说明</Link></Space>}>
+                  <Card title="金币钱包" bordered={false} className="cute-card" extra={<Space><Link onClick={showCoinRecords} className="cute-text">获取记录</Link> <Link className="cute-text">用途说明</Link></Space>}>
                        <Row gutter={16}>
                            <Col span={12}>
-                               <Statistic title="当前持有" value={userInfo?.coins || 0} precision={2} prefix={<PayCircleOutlined />} valueStyle={{ color: '#faad14' }} />
+                               {/* Coin specific class added */}
+                               <Statistic className="cute-stat-coin cute-stat-title" title="当前持有" value={userInfo?.coins || 0} precision={2} prefix={<PayCircleOutlined />} />
                            </Col>
                            <Col span={12}>
-                               <Statistic title="学习总时长(分)" value={userInfo?.totalStudyTimeMinutes || 0} />
+                               <Statistic className="cute-stat-val cute-stat-title" title="学习总时长(分)" value={userInfo?.totalStudyTimeMinutes || 0} />
                            </Col>
                        </Row>
                   </Card>
@@ -150,8 +155,9 @@ export default function PersonalCenterPage() {
           </Row>
 
           <Card 
-              title={<Title level={5} style={{ margin: 0 }}>学习时长统计</Title>} 
+              title={<span className="card-custom-title">学习时长统计</span>} 
               bordered={false}
+              className="cute-card"
               extra={
                   <Tabs 
                       activeKey={activeTab} 
@@ -166,19 +172,19 @@ export default function PersonalCenterPage() {
               <div style={{ height: 320, width: '100%' }}>
                   <ResponsiveContainer width="100%" height="100%">
                       <LineChart data={studyData[activeTab]} margin={{ top: 20, right: 30, left: 0, bottom: 0 }}>
-                          <CartesianGrid strokeDasharray="3 3" vertical={false} />
-                          <XAxis dataKey="name" />
-                          <YAxis />
-                          <Tooltip />
+                          <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E8FFF2" />
+                          <XAxis dataKey="name" stroke="#555555" />
+                          <YAxis stroke="#555555" />
+                          <Tooltip contentStyle={{ borderRadius: 8, border: 'none', boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }} />
                           <Legend />
                           <Line 
                               type="monotone" 
                               dataKey="time" 
                               name="时长 (分钟)" 
-                              stroke="#1890ff" 
-                              strokeWidth={2}
-                              dot={{ r: 4 }}
-                              activeDot={{ r: 6 }}
+                              stroke="#87CEFA" 
+                              strokeWidth={3}
+                              dot={{ r: 4, fill: '#87CEFA' }}
+                              activeDot={{ r: 6, fill: '#FFB6C1' }}
                           />
                       </LineChart>
                   </ResponsiveContainer>
@@ -187,7 +193,7 @@ export default function PersonalCenterPage() {
 
           <Row gutter={16}>
               <Col span={12}>
-                   <Card title="学习计划" bordered={false}>
+                   <Card title="学习计划" bordered={false} className="cute-card">
                       <div style={{ height: 200, display: 'flex', justifyContent: 'center' }}>
                          <ResponsiveContainer width="100%" height="100%">
                              <PieChart>
@@ -200,11 +206,11 @@ export default function PersonalCenterPage() {
                              </PieChart>
                          </ResponsiveContainer>
                       </div>
-                      <div style={{ textAlign: 'center' }}>计划完成率: 75%</div>
+                      <div style={{ textAlign: 'center', color: '#555555' }}>计划完成率: <span style={{ color: '#FAAD14', fontWeight: 'bold', fontSize: '18px' }}>75%</span></div>
                    </Card>
               </Col>
               <Col span={12}>
-                   <Card title="学习记录" bordered={false}>
+                   <Card title="学习记录" bordered={false} className="cute-card">
                        <List
                            dataSource={[
                                { time: '2023-10-27 10:00', content: '专注 30 分钟' },
@@ -212,9 +218,9 @@ export default function PersonalCenterPage() {
                                { time: '2023-10-27 12:30', content: '专注 25 分钟' },
                            ]}
                            renderItem={item => (
-                               <List.Item>
-                                   <Text>{item.time}</Text>
-                                   <Text type="secondary">{item.content}</Text>
+                               <List.Item className="cute-list-item">
+                                   <Text className="cute-text">{item.time}</Text>
+                                   <Text className="cute-text" type="secondary">{item.content}</Text>
                                </List.Item>
                            )}
                        />
@@ -226,60 +232,62 @@ export default function PersonalCenterPage() {
 
   const renderGarden = () => (
       <div style={{ display: 'flex', gap: 24, height: '100%' }}>
-          <Card title="植物系统" bordered={false} style={{ flex: 1, height: '100%' }} bodyStyle={{ height: 'calc(100% - 57px)', display: 'flex', flexDirection: 'column', justifyContent: 'center' }} extra={<Button size="small">合成</Button>}>
+          <Card title="植物系统" bordered={false} className="cute-card" style={{ flex: 1, height: '100%' }} bodyStyle={{ height: 'calc(100% - 57px)', display: 'flex', flexDirection: 'column', justifyContent: 'center' }} extra={<Button size="small">合成</Button>}>
               <Space size="large" wrap style={{ justifyContent: 'center', width: '100%' }}>
-                  <div style={{ textAlign: 'center' }}><img src="https://via.placeholder.com/64" alt="plant" /><br/><Text type="secondary">仙人掌</Text></div>
-                  <div style={{ textAlign: 'center' }}><img src="https://via.placeholder.com/64" alt="plant" /><br/><Text type="secondary">多肉</Text></div>
-                  <div style={{ textAlign: 'center' }}><div style={{ width: 64, height: 64, background: '#eee', borderRadius: '50%' }} /><br/><Text type="secondary" disabled>未解锁</Text></div>
-                  <div style={{ textAlign: 'center' }}><div style={{ width: 64, height: 64, background: '#eee', borderRadius: '50%' }} /><br/><Text type="secondary" disabled>未解锁</Text></div>
+                  <div style={{ textAlign: 'center' }}><img src="https://via.placeholder.com/64" alt="plant" style={{borderRadius: '50%', border: '2px solid #E8FFF2'}} /><br/><Text className="cute-text">仙人掌</Text></div>
+                  <div style={{ textAlign: 'center' }}><img src="https://via.placeholder.com/64" alt="plant" style={{borderRadius: '50%', border: '2px solid #E8FFF2'}} /><br/><Text className="cute-text">多肉</Text></div>
+                  <div style={{ textAlign: 'center' }}><div style={{ width: 64, height: 64, background: '#F0F0F0', borderRadius: '50%', border: '2px dashed #E8FFF2' }} /><br/><Text className="cute-text" disabled>未解锁</Text></div>
+                  <div style={{ textAlign: 'center' }}><div style={{ width: 64, height: 64, background: '#F0F0F0', borderRadius: '50%', border: '2px dashed #E8FFF2' }} /><br/><Text className="cute-text" disabled>未解锁</Text></div>
               </Space>
           </Card>
-          <Card title="虚拟形象系统" bordered={false} style={{ flex: 1, height: '100%' }} bodyStyle={{ height: 'calc(100% - 57px)', display: 'flex', flexDirection: 'column', justifyContent: 'center' }} extra={<Button type="link">去编辑</Button>}>
+          <Card title="虚拟形象系统" bordered={false} className="cute-card" style={{ flex: 1, height: '100%' }} bodyStyle={{ height: 'calc(100% - 57px)', display: 'flex', flexDirection: 'column', justifyContent: 'center' }} extra={<Button type="link">去编辑</Button>}>
                <div style={{ textAlign: 'center', marginBottom: 20 }}>
-                  <Avatar size={96} style={{ backgroundColor: '#fde3cf', color: '#f56a00' }}>U</Avatar>
+                  <Avatar size={96} style={{ backgroundColor: '#E3F4FF', color: '#555555', border: '3px solid white' }}>U</Avatar>
                </div>
                <Divider style={{ margin: '0 0 16px' }} />
-               <Text>形象进度 (金色头发):</Text>
-               <Progress percent={26} status="active" />
+               <Text className="cute-text">形象进度 (金色头发):</Text>
+               <Progress percent={26} status="active" strokeColor="#FFFACD" trailColor="#E3F4FF" />
           </Card>
       </div>
   );
 
   return (
-        <div style={{ display: 'flex', height: 'calc(100vh - 64px)', width: '100%', backgroundColor: '#f0f2f5' }}>
+    <div className="cute-page-container">
+      {/* Floating Background Elements */}
+      <div className="floating-elements-container">
+          <div className="float-item cloud large" style={{ top: '15%', left: '-10%', animationDelay: '0s' }}></div>
+          <div className="float-item cloud medium" style={{ top: '65%', left: '110%', animationDelay: '-20s', animationDuration: '70s' }}></div>
+          <div className="float-item cloud large" style={{ top: '35%', left: '120%', animationDelay: '-40s' }}></div>
+          <div className="float-item cloud medium" style={{ top: '85%', left: '-20%', animationDelay: '-10s', animationDuration: '80s' }}></div>
+          <div className="float-item rainbow" style={{ bottom: '5%', right: '5%', transform: 'scale(0.8) rotate(-5deg)', animationDelay: '-20s' }}></div>
+      </div>
+
       {/* Left Sidebar */}
-      <div style={{ width: '250px', backgroundColor: '#001529', color: 'white', display: 'flex', flexDirection: 'column', flexShrink: 0 }}>
-        <div style={{ padding: '24px', textAlign: 'center', borderBottom: '1px solid #1890ff' }}>
-           <Title level={4} style={{ color: 'white' }}>账户信息</Title>
-           <Avatar size={64} icon={<UserOutlined />} style={{ marginBottom: 16 }} />
-           <div style={{ fontSize: '16px' }}>{userInfo?.username || 'Guest'}</div>
+      <div className="cute-sidebar">
+        <div className="cute-sidebar-header">
+             <div className="cute-avatar-wrapper">
+                <Avatar size={64} icon={<UserOutlined />} className="cute-profile-avatar" style={{ backgroundColor: '#E3F4FF', color: '#555555' }} />
+             </div>
+             <div style={{ fontSize: '16px', fontWeight: 'bold', color: '#555555' }}>{userInfo?.username || 'Guest'}</div>
         </div>
         <List
             dataSource={menuItems}
+            split={false}
             renderItem={item => (
-                <List.Item
+                <div 
+                    className={`cute-nav-item ${activeSection === item.key ? 'active' : ''}`}
                     onClick={() => setActiveSection(item.key)}
-                    style={{
-                        padding: '16px 24px',
-                        cursor: 'pointer',
-                        borderBottom: '1px solid rgba(255,255,255,0.1)',
-                        color: activeSection === item.key ? 'white' : 'rgba(255,255,255,0.65)',
-                        background: activeSection === item.key ? 'rgba(24,144,255,0.25)' : 'transparent'
-                    }}
-                    className="menu-item"
                 >
-                    <Space size="middle">
-                        {item.icon}
-                        <span>{item.title}</span>
-                    </Space>
-                </List.Item>
+                    {item.icon}
+                    <span>{item.title}</span>
+                </div>
             )}
         />
       </div>
 
       {/* Main Content */}
-      <div style={{ flex: 1, padding: '24px', overflow: 'hidden' }}>
-          <div style={{ height: '100%', overflowY: activeSection === 'garden' ? 'hidden' : 'auto' }}>
+      <div className="cute-main-content">
+          <div style={{ height: '100%', overflowY: activeSection === 'garden' ? 'hidden' : 'auto', paddingRight: 8 }}>
               {activeSection === 'profile' && renderProfile()}
               {activeSection === 'study' && renderStudyAndCoins()}
               {activeSection === 'garden' && renderGarden()}

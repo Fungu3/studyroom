@@ -50,6 +50,14 @@
   box-shadow: none !important;
 }
 
+.header-nav-action,
+.header-nav-action:focus,
+.header-nav-action:focus-visible,
+.header-nav-action:active {
+  box-shadow: none !important;
+  outline: none !important;
+}
+
 .header-nav-btn:focus,
 .header-nav-btn:focus-visible,
 .header-nav-btn:active {
