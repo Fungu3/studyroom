@@ -83,8 +83,8 @@ export default function RoomDetailPage() {
     useEffect(() => {
         let timer;
         const scheduleBalloon = () => {
-            // 3-5 mins (180s - 300s)
-            const delay = Math.floor(Math.random() * (300000 - 180000 + 1) + 180000);
+            // 3x frequency: 1-1.67 mins (60s - 100s)
+            const delay = Math.floor(Math.random() * (100000 - 60000 + 1) + 60000);
             timer = setTimeout(() => {
                 setBalloonVisible(true);
                 // Hide after 60s (animation duration)
@@ -94,14 +94,14 @@ export default function RoomDetailPage() {
                 }, 60000);
             }, delay);
         };
-        // Initial appearance 10s after load
+        // Initial appearance ~3.3s after load (3x frequency)
         timer = setTimeout(() => {
              setBalloonVisible(true);
              setTimeout(() => {
                 setBalloonVisible(false);
                 scheduleBalloon();
             }, 60000);
-        }, 10000);
+        }, 3333);
         return () => clearTimeout(timer);
     }, []);
 
@@ -900,9 +900,12 @@ export default function RoomDetailPage() {
                         <Cloud sizeStr="30vw" style={{ top: '15%', animationDuration: '90s', animationDelay: '-40s', opacity: 0.6 }} />
                         <Cloud sizeStr="38vw" style={{ top: '25%', animationDuration: '70s', animationDelay: '-20s', opacity: 0.7 }} />
                         
-                        {balloonVisible && (
-                           <HotAirBalloon style={{ animationDuration: '60s' }} />
-                        )}
+                                {balloonVisible && (
+                                    <>
+                                         <HotAirBalloon style={{ animationDuration: '60s' }} />
+                                         <HotAirBalloon style={{ animationDuration: '75s', animationDelay: '-20s', width: '160px', height: '190px' }} />
+                                    </>
+                                )}
                     </div>
                     <div className="timer-container">
                         <div 

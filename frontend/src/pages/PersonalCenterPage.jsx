@@ -234,19 +234,24 @@ export default function PersonalCenterPage() {
       <div style={{ display: 'flex', gap: 24, height: '100%' }}>
           <Card title="植物系统" bordered={false} className="cute-card" style={{ flex: 1, height: '100%' }} bodyStyle={{ height: 'calc(100% - 57px)', display: 'flex', flexDirection: 'column', justifyContent: 'center' }} extra={<Button size="small">合成</Button>}>
               <Space size="large" wrap style={{ justifyContent: 'center', width: '100%' }}>
-                  <div style={{ textAlign: 'center' }}><img src="https://via.placeholder.com/64" alt="plant" style={{borderRadius: '50%', border: '2px solid #E8FFF2'}} /><br/><Text className="cute-text">仙人掌</Text></div>
-                  <div style={{ textAlign: 'center' }}><img src="https://via.placeholder.com/64" alt="plant" style={{borderRadius: '50%', border: '2px solid #E8FFF2'}} /><br/><Text className="cute-text">多肉</Text></div>
+                  <div style={{ textAlign: 'center' }}><img src="/plant-cactus.png" alt="仙人掌" style={{borderRadius: '50%', border: '2px solid #E8FFF2'}} /><br/><Text className="cute-text">仙人掌</Text></div>
+                  <div style={{ textAlign: 'center' }}><img src="/plant-succulent.png" alt="多肉" style={{borderRadius: '50%', border: '2px solid #E8FFF2'}} /><br/><Text className="cute-text">多肉</Text></div>
                   <div style={{ textAlign: 'center' }}><div style={{ width: 64, height: 64, background: '#F0F0F0', borderRadius: '50%', border: '2px dashed #E8FFF2' }} /><br/><Text className="cute-text" disabled>未解锁</Text></div>
                   <div style={{ textAlign: 'center' }}><div style={{ width: 64, height: 64, background: '#F0F0F0', borderRadius: '50%', border: '2px dashed #E8FFF2' }} /><br/><Text className="cute-text" disabled>未解锁</Text></div>
               </Space>
           </Card>
-          <Card title="虚拟形象系统" bordered={false} className="cute-card" style={{ flex: 1, height: '100%' }} bodyStyle={{ height: 'calc(100% - 57px)', display: 'flex', flexDirection: 'column', justifyContent: 'center' }} extra={<Button type="link">去编辑</Button>}>
-               <div style={{ textAlign: 'center', marginBottom: 20 }}>
-                  <Avatar size={96} style={{ backgroundColor: '#E3F4FF', color: '#555555', border: '3px solid white' }}>U</Avatar>
+        <Card title="虚拟形象系统" bordered={false} className="cute-card" style={{ flex: 1, height: '100%' }} bodyStyle={{ height: 'calc(100% - 57px)', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }} extra={<Button type="link">去编辑</Button>}>
+            <div style={{ width: '100%', height: '92%', borderRadius: 16, overflow: 'hidden', background: '#E3F4FF' }}>
+                  <img
+                      src="/virtual-avatar.png"
+                      alt="virtual-avatar"
+                      style={{ width: '100%', height: '100%', objectFit: 'contain', display: 'block' }}
+                  />
                </div>
-               <Divider style={{ margin: '0 0 16px' }} />
-               <Text className="cute-text">形象进度 (金色头发):</Text>
-               <Progress percent={26} status="active" strokeColor="#FFFACD" trailColor="#E3F4FF" />
+               <div style={{ marginTop: 8 }}>
+                   <Text className="cute-text">形象进度 (金色头发):</Text>
+                   <Progress percent={60} status="active" strokeColor="#FFFACD" trailColor="#E3F4FF" />
+               </div>
           </Card>
       </div>
   );
